@@ -18,6 +18,7 @@
 3. 다음 값 복사:
    - **Project URL** (예: `https://xxxxxxxx.supabase.co`)
    - **anon public** 키 (Public 키)
+   - **service_role** 키 (비밀 키 - 노출 주의)
 
 ## 3. 환경 변수 설정
 
@@ -27,7 +28,10 @@
 ```
 NEXT_PUBLIC_SUPABASE_URL=여기에_Project_URL_붙여넣기
 NEXT_PUBLIC_SUPABASE_ANON_KEY=여기에_anon_키_붙여넣기
+SUPABASE_SERVICE_ROLE_KEY=여기에_service_role_키_붙여넣기
 ```
+
+> **service_role** 키는 서버에서만 사용합니다. 클라이언트에 노출하지 마세요.
 
 3. 파일 저장
 
