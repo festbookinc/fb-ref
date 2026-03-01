@@ -19,9 +19,11 @@ export async function POST(
 
     const { id: boardId } = await params;
     const body = await request.json();
-    const imageId = body.imageId;
+    const imageId = body.imageId as string | undefined;
+    const imageIds = body.imageIds as string[] | undefined;
+    const ids = imageIds?.length ? imageIds : imageId ? [imageId] : [];
 
-    if (!imageId) {
+    if (ids.length === 0) {
       return NextResponse.json({ error: "이미지 ID가 필요합니다" }, { status: 400 });
     }
 
@@ -38,9 +40,10 @@ export async function POST(
       return NextResponse.json({ error: "권한이 없습니다" }, { status: 403 });
     }
 
+    const rows = ids.map((id) => ({ board_id: boardId, image_id: id }));
     const { error } = await supabase
       .from("board_images")
-      .upsert({ board_id: boardId, image_id: imageId }, { onConflict: "board_id,image_id" });
+      .upsert(rows, { onConflict: "board_id,image_id" });
 
     if (error) {
       return NextResponse.json({ error: "추가 실패" }, { status: 500 });

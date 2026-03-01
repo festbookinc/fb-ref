@@ -19,7 +19,7 @@ export default async function BoardPage({
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
       <Link
-        href="/mypage"
+        href="/mypage?tab=boards"
         className="mb-6 inline-block text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-200 dark:hover:text-zinc-100"
       >
         ← 마이페이지

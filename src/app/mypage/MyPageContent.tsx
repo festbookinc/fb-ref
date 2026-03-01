@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { MyImagesGrid } from "./images/MyImagesGrid";
 import { MyLikesGrid } from "./images/MyLikesGrid";
@@ -15,6 +16,7 @@ interface Board {
 }
 
 export function MyPageContent() {
+  const searchParams = useSearchParams();
   const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
   const [newBoardName, setNewBoardName] = useState("");
@@ -86,6 +88,13 @@ export function MyPageContent() {
   };
 
   const [activeTab, setActiveTab] = useState<TabId>("saved");
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "saved" || tab === "boards" || tab === "likes") {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   const tabs: { id: TabId; label: string }[] = [
     { id: "saved", label: "저장한 이미지" },

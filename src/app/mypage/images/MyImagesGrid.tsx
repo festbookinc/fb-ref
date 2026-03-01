@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { ImageDetailModal } from "@/components/ImageDetailModal";
+import { BoardAddBulkModal } from "@/components/BoardAddBulkModal";
 
 interface ImageItem {
   id: string;
@@ -36,6 +37,7 @@ export function MyImagesGrid() {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [boardAddModalOpen, setBoardAddModalOpen] = useState(false);
   const loaderRef = useRef<HTMLDivElement>(null);
 
   const fetchImages = useCallback(
@@ -163,6 +165,14 @@ export function MyImagesGrid() {
                 className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:text-zinc-100 dark:hover:bg-zinc-800"
               >
                 {selectedIds.size === images.length ? "선택 해제" : "전체 선택"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setBoardAddModalOpen(true)}
+                disabled={selectedIds.size === 0}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:text-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50"
+              >
+                보드에 추가 ({selectedIds.size})
               </button>
               <button
                 type="button"
@@ -316,6 +326,17 @@ export function MyImagesGrid() {
           setSelectedImageId(null);
         }}
         onUpdate={() => fetchImages(1, false)}
+      />
+
+      <BoardAddBulkModal
+        isOpen={boardAddModalOpen}
+        onClose={() => setBoardAddModalOpen(false)}
+        imageIds={[...selectedIds]}
+        onSuccess={() => {
+          setBoardAddModalOpen(false);
+          setSelectedIds(new Set());
+          setSelectMode(false);
+        }}
       />
     </>
   );
