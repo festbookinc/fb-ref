@@ -2,9 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { useRefresh } from "@/contexts/RefreshContext";
-import { useSearch } from "@/contexts/SearchContext";
-import { ImageDetailModal } from "./ImageDetailModal";
+import { ImageDetailModal } from "@/components/ImageDetailModal";
 
 interface ImageItem {
   id: string;
@@ -17,24 +15,16 @@ interface ImageItem {
   tags: string[];
 }
 
-export function ImageArchiveGrid() {
+export function MyLikesGrid() {
   const [images, setImages] = useState<ImageItem[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState<"latest" | "random">("latest");
-  const [cardSize, setCardSize] = useState(280);
+  const [cardSize, setCardSize] = useState(220);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const loaderRef = useRef<HTMLDivElement>(null);
-  const { registerRefresh } = useRefresh() ?? {};
-  const { query = "", selectedTags = [] } = useSearch() ?? {};
-  const [debouncedQuery, setDebouncedQuery] = useState(query);
-
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedQuery(query), 300);
-    return () => clearTimeout(t);
-  }, [query]);
 
   const fetchImages = useCallback(
     async (pageNum = 1, append = false) => {
@@ -44,9 +34,8 @@ export function ImageArchiveGrid() {
           page: String(pageNum),
           limit: "24",
           sort,
+          likes: "1",
         });
-        if (debouncedQuery.trim()) params.set("q", debouncedQuery.trim());
-        if (selectedTags.length) params.set("tags", selectedTags.join(","));
         const res = await fetch(`/api/images?${params}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "조회 실패");
@@ -59,7 +48,7 @@ export function ImageArchiveGrid() {
         setLoading(false);
       }
     },
-    [sort, debouncedQuery, selectedTags]
+    [sort]
   );
 
   useEffect(() => {
@@ -67,11 +56,6 @@ export function ImageArchiveGrid() {
     fetchImages(1, false);
   }, [fetchImages]);
 
-  useEffect(() => {
-    registerRefresh?.(() => fetchImages(1, false));
-  }, [registerRefresh, fetchImages]);
-
-  // Infinite scroll
   useEffect(() => {
     if (!hasMore || loading) return;
     const observer = new IntersectionObserver(
@@ -107,7 +91,7 @@ export function ImageArchiveGrid() {
   };
 
   return (
-    <div className="w-full px-4 py-2 sm:px-6 sm:py-3">
+    <>
       <div className="mb-6 flex flex-wrap items-center justify-end gap-4">
         <div className="flex items-center gap-3">
           <select
@@ -196,6 +180,12 @@ export function ImageArchiveGrid() {
         </div>
       )}
 
+      {!loading && images.length === 0 && (
+        <p className="rounded-lg border border-dashed border-zinc-300 py-12 text-center text-sm text-zinc-500 dark:border-zinc-600 dark:text-zinc-200">
+          아직 좋아요한 이미지가 없습니다.
+        </p>
+      )}
+
       <div ref={loaderRef} className="h-20" />
 
       <ImageDetailModal
@@ -207,6 +197,6 @@ export function ImageArchiveGrid() {
         }}
         onUpdate={() => fetchImages(1, false)}
       />
-    </div>
+    </>
   );
 }

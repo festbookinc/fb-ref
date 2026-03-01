@@ -6,20 +6,17 @@
 
 ## 1. GitHub 푸시
 
-**사용할 GitHub 계정을 확인한 뒤** 아래를 실행하세요. (예: festbookinc)
+이미 `git push -u origin main`으로 한 번 푸시했다면, 이후에는 변경 사항 커밋 후 **`git push`만** 실행하면 됩니다.
 
 ```bash
-# 변경 사항 스테이징 및 커밋
 git add .
-git commit -m "Phase 8: 모션 인터랙션 및 Vercel 배포 준비"
-
-# 원격 저장소로 푸시 (origin이 festbookinc/fb-ref 등으로 설정되어 있어야 함)
-git push -u origin main
+git commit -m "커밋 메시지"
+git push
 ```
 
-원격 URL 확인:
+처음 푸시하는 경우:
 ```bash
-git remote -v
+git push -u origin main
 ```
 
 ---
@@ -39,18 +36,45 @@ git remote -v
 
 ## 3. 환경 변수 설정
 
-Vercel 대시보드 → 프로젝트 → **Settings** → **Environment Variables**에서 아래 변수를 추가하세요.
+### 찾는 방법
 
-| 변수명 | 설명 | 예시 |
-|--------|------|------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase 프로젝트 URL | `https://xxx.supabase.co` |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Anon Key | `eyJ...` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase Service Role Key | `eyJ...` |
-| `AUTH_SECRET` | NextAuth 시크릿 | `npx auth secret` 실행 결과 |
-| `AUTH_GOOGLE_ID` | Google OAuth 클라이언트 ID | `xxx.apps.googleusercontent.com` |
-| `AUTH_GOOGLE_SECRET` | Google OAuth 시크릿 | |
-| `ALLOWED_EMAILS` | 허용 이메일 (쉼표 구분) | `festbookinc@gmail.com` |
-| `ALLOWED_EMAIL_DOMAINS` | 허용 도메인 (쉼표 구분) | `festbook.co.kr` |
+1. [vercel.com/dashboard](https://vercel.com/dashboard) 접속
+2. **프로젝트 이름(fb-ref 등)** 클릭
+3. 상단 탭에서 **Settings** 클릭
+4. 왼쪽 사이드바에서 **Environment Variables** 클릭  
+   (스크롤이 필요할 수 있음. General, Domains 아래에 있음)
+
+**또는** 프로젝트를 처음 Import할 때 **Configure Project** 화면에서 **Environment Variables** 섹션이 보이면 그때 추가해도 됩니다.
+
+### 방법 1: 일괄 붙여넣기 (권장)
+
+로컬 `.env.local` 내용을 복사한 뒤, Vercel 환경 변수 화면에서 **붙여넣기(Ctrl+V)** 하면 자동으로 여러 값이 한 번에 들어갑니다.
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+AUTH_SECRET=...
+AUTH_GOOGLE_ID=xxx.apps.googleusercontent.com
+AUTH_GOOGLE_SECRET=...
+ALLOWED_EMAILS=festbookinc@gmail.com
+ALLOWED_EMAIL_DOMAINS=festbook.co.kr
+```
+
+또는 **Import** 버튼으로 `.env` 파일을 업로드해도 됩니다.
+
+### 방법 2: 하나씩 입력
+
+| 변수명 | 설명 |
+|--------|------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase 프로젝트 URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Anon Key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase Service Role Key |
+| `AUTH_SECRET` | NextAuth 시크릿 (`npx auth secret` 실행 결과) |
+| `AUTH_GOOGLE_ID` | Google OAuth 클라이언트 ID |
+| `AUTH_GOOGLE_SECRET` | Google OAuth 시크릿 |
+| `ALLOWED_EMAILS` | 허용 이메일 (쉼표 구분) |
+| `ALLOWED_EMAIL_DOMAINS` | 허용 도메인 (쉼표 구분) |
 
 **Production, Preview, Development** 모두에 적용하거나, Production만 설정해도 됩니다.
 

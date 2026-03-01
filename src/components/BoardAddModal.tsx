@@ -122,7 +122,7 @@ export function BoardAddModal({ isOpen, onClose, imageId, onSuccess }: BoardAddM
           <button
             type="button"
             onClick={onClose}
-            className="rounded p-1 text-zinc-500 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-700 hover:scale-110 active:scale-95 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+            className="rounded p-1 text-zinc-500 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-700 hover:scale-110 active:scale-95 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
             aria-label="닫기"
           >
             <CloseIcon className="h-5 w-5" />
@@ -148,7 +148,7 @@ export function BoardAddModal({ isOpen, onClose, imageId, onSuccess }: BoardAddM
 
         <div className="max-h-48 overflow-y-auto">
           {boards.length === 0 ? (
-            <p className="py-4 text-center text-sm text-zinc-500">보드가 없습니다. 위에서 새로 만드세요.</p>
+            <p className="py-4 text-center text-sm text-zinc-500 dark:text-zinc-200">보드가 없습니다. 위에서 새로 만드세요.</p>
           ) : (
             <ul className="space-y-1">
               {boards.map((board) => (
@@ -165,7 +165,7 @@ export function BoardAddModal({ isOpen, onClose, imageId, onSuccess }: BoardAddM
                   >
                     <span>{board.name}</span>
                     {inBoardIds.has(board.id) && (
-                      <span className="text-xs text-zinc-500">추가됨</span>
+                      <span className="text-xs text-zinc-500 dark:text-zinc-200">추가됨</span>
                     )}
                   </button>
                 </li>

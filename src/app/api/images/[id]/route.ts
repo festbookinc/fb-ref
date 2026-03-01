@@ -72,7 +72,30 @@ export async function GET(
       author: c.user_id ? commentAuthors[c.user_id] : "알 수 없음",
     }));
 
+    // 좋아요 수 및 현재 사용자 좋아요 여부
+    const { count: likeCount } = await supabase
+      .from("image_likes")
+      .select("image_id", { count: "exact", head: true })
+      .eq("image_id", id);
+
+    let likedByMe = false;
     const session = await auth();
+    if (session?.user?.email) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", session.user.email)
+        .single();
+      if (profile?.id) {
+        const { data: like } = await supabase
+          .from("image_likes")
+          .select("image_id")
+          .eq("image_id", id)
+          .eq("user_id", profile.id)
+          .single();
+        likedByMe = !!like;
+      }
+    }
 
     return NextResponse.json({
       ...image,
@@ -81,6 +104,8 @@ export async function GET(
       tags: tagNames,
       comments: commentsWithAuthor,
       isAuthor: session?.user?.email ? session.user.email === authorEmail : false,
+      likeCount: likeCount ?? 0,
+      likedByMe,
     });
   } catch (err) {
     console.error("Image fetch error:", err);

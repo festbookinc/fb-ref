@@ -24,7 +24,7 @@ function LoginContent() {
         <h1 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
           로그인
         </h1>
-        <p className="mb-6 text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="mb-6 text-sm text-zinc-500 dark:text-zinc-200">
           허용된 Google 계정으로만 로그인할 수 있습니다.
         </p>
 
@@ -49,7 +49,7 @@ function LoginContent() {
           Google로 로그인
         </button>
 
-        <p className="mt-6 text-center text-xs text-zinc-500 dark:text-zinc-400">
+        <p className="mt-6 text-center text-xs text-zinc-500 dark:text-zinc-200">
           로그인 시 서비스 이용약관에 동의한 것으로 간주됩니다.
         </p>
       </div>

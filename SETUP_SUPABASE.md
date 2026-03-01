@@ -40,6 +40,8 @@ SUPABASE_SERVICE_ROLE_KEY=여기에_service_role_키_붙여넣기
 1. Supabase 대시보드 → **SQL Editor** 메뉴
 2. `supabase/migrations/001_initial_schema.sql` 파일 내용 복사 후 **Run** 실행
 3. `supabase/migrations/002_storage_bucket.sql` 파일 내용 복사 후 **Run** 실행
+4. `supabase/migrations/003_search_images.sql` 파일 내용 복사 후 **Run** 실행 (한글 검색용)
+   - 부분 검색('부동산' 등)이 안 되면 003을 **다시 실행** (NFC 정규화 버전으로 갱신)
 
 (또는 Supabase CLI 설치 후 `supabase db push` 사용)
 

@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useUpload } from "@/contexts/UploadContext";
 
-const IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/avif", "image/svg+xml"];
 
 function isImageFile(file: File): boolean {
   return IMAGE_TYPES.includes(file.type);
@@ -56,7 +56,7 @@ export function DropZone({ children }: { children: React.ReactNode }) {
           className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center rounded-lg border-2 border-dashed border-zinc-400 bg-zinc-100/90 animate-modal-backdrop dark:border-zinc-500 dark:bg-zinc-900/90"
           aria-hidden
         >
-          <p className="text-lg font-medium text-zinc-700 dark:text-zinc-300">
+          <p className="text-lg font-medium text-zinc-700 dark:text-zinc-100">
             이미지를 여기에 놓으세요
           </p>
         </div>

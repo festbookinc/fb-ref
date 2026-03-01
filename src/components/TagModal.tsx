@@ -60,6 +60,12 @@ export function TagModal({ isOpen, onClose, selectedTags, onApply }: TagModalPro
       <div
         className="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-6 shadow-xl animate-modal-content dark:border-zinc-800 dark:bg-zinc-900"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            handleApply();
+          }
+        }}
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 id="tag-modal-title" className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
@@ -68,7 +74,7 @@ export function TagModal({ isOpen, onClose, selectedTags, onApply }: TagModalPro
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1 text-zinc-500 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-700 hover:scale-110 active:scale-95 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+            className="rounded-lg p-1 text-zinc-500 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-700 hover:scale-110 active:scale-95 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
             aria-label="닫기"
           >
             <CloseIcon className="h-5 w-5" />
@@ -79,13 +85,19 @@ export function TagModal({ isOpen, onClose, selectedTags, onApply }: TagModalPro
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handleApply();
+            }
+          }}
           placeholder="태그 검색..."
           className="mb-4 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
         />
 
         <div className="mb-4 max-h-60 overflow-y-auto">
           {tags.length === 0 ? (
-            <p className="py-4 text-center text-sm text-zinc-500">태그가 없습니다.</p>
+            <p className="py-4 text-center text-sm text-zinc-500 dark:text-zinc-200">태그가 없습니다.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {tags.map((tag) => (
@@ -96,7 +108,7 @@ export function TagModal({ isOpen, onClose, selectedTags, onApply }: TagModalPro
                   className={`rounded-lg px-3 py-1.5 text-sm transition-all duration-200 ${
                     selected.has(tag.name)
                       ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                      : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                      : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
                   }`}
                 >
                   {tag.name}
@@ -107,7 +119,7 @@ export function TagModal({ isOpen, onClose, selectedTags, onApply }: TagModalPro
         </div>
 
         {selected.size > 0 && (
-          <p className="mb-4 text-sm text-zinc-500">
+          <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-200">
             {selected.size}개 선택됨
           </p>
         )}

@@ -24,6 +24,8 @@ interface ImageDetail {
   tags: string[];
   comments: Comment[];
   isAuthor: boolean;
+  likeCount: number;
+  likedByMe: boolean;
 }
 
 interface ImageDetailModalProps {
@@ -50,6 +52,7 @@ export function ImageDetailModal({
   const [editTags, setEditTags] = useState("");
   const [saveLoading, setSaveLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [likeLoading, setLikeLoading] = useState(false);
   const [boardAddOpen, setBoardAddOpen] = useState(false);
   const { data: session } = useSession();
 
@@ -75,7 +78,11 @@ export function ImageDetailModal({
       .then((res) => res.json())
       .then((data) => {
         if (data.error) throw new Error(data.error);
-        setDetail(data);
+        setDetail({
+          ...data,
+          likeCount: data.likeCount ?? 0,
+          likedByMe: data.likedByMe ?? false,
+        });
         setEditTitle(data.title);
         setEditDescription(data.description || "");
         setEditLink(data.link || "");
@@ -85,16 +92,27 @@ export function ImageDetailModal({
       .finally(() => setLoading(false));
   }, [isOpen, imageId]);
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!detail?.image_url) return;
-    const a = document.createElement("a");
-    a.href = detail.image_url;
-    a.download = `${detail.title.replace(/[/\\?%*:|"<>]/g, "-")}.webp`;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    try {
+      const res = await fetch(detail.image_url);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${detail.title.replace(/[/\\?%*:|"<>]/g, "-")}.webp`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      const a = document.createElement("a");
+      a.href = detail.image_url;
+      a.download = `${detail.title.replace(/[/\\?%*:|"<>]/g, "-")}.webp`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
   };
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
@@ -158,6 +176,29 @@ export function ImageDetailModal({
     }
   };
 
+  const handleLike = async () => {
+    if (!imageId || !session?.user) return;
+    setLikeLoading(true);
+    try {
+      const res = await fetch(`/api/images/${imageId}/like`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setDetail((prev) =>
+        prev
+          ? {
+              ...prev,
+              likedByMe: data.liked,
+              likeCount: data.likeCount ?? prev.likeCount,
+            }
+          : null
+      );
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLikeLoading(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!imageId || !confirm("정말 삭제하시겠습니까?")) return;
     setDeleteLoading(true);
@@ -192,162 +233,123 @@ export function ImageDetailModal({
             <div className="h-10 w-10 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600 dark:border-zinc-600 dark:border-t-zinc-400" />
           </div>
         ) : !detail ? (
-          <div className="py-24 text-center text-zinc-500">이미지를 불러올 수 없습니다.</div>
+          <div className="py-24 text-center text-zinc-500 dark:text-zinc-200">이미지를 불러올 수 없습니다.</div>
         ) : (
           <>
-            <div className="flex flex-1 overflow-hidden">
-              <div className="flex min-w-0 flex-1 items-center justify-center bg-zinc-100 p-4 dark:bg-zinc-950">
-                <img
-                  src={detail.image_url}
-                  alt={detail.title}
-                  className="max-h-[70vh] max-w-full object-contain"
-                />
-              </div>
-              <div className="flex w-96 flex-col overflow-y-auto border-l border-zinc-200 dark:border-zinc-800">
-                <div className="flex items-center justify-between border-b border-zinc-200 p-4 dark:border-zinc-800">
-                  <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                    {detail.title}
-                  </h2>
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="rounded p-1 text-zinc-500 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-700 hover:scale-110 active:scale-95 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
-                    aria-label="닫기"
-                  >
-                    <CloseIcon className="h-5 w-5" />
-                  </button>
-                </div>
-
-                <div className="flex flex-wrap gap-2 border-b border-zinc-200 p-4 dark:border-zinc-800">
-                  <button
-                    type="button"
-                    onClick={handleDownload}
-                    className="rounded-lg bg-zinc-100 px-3 py-2 text-sm font-medium text-zinc-700 transition-all duration-200 hover:bg-zinc-200 active:scale-95 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
-                  >
-                    다운로드
-                  </button>
-                  {detail.isAuthor && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => (editMode ? handleSaveEdit() : setEditMode(true))}
-                        disabled={saveLoading}
-                        className="rounded-lg bg-zinc-100 px-3 py-2 text-sm font-medium text-zinc-700 transition-all duration-200 hover:bg-zinc-200 active:scale-95 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 disabled:opacity-50"
-                      >
-                        {editMode ? (saveLoading ? "저장 중..." : "저장") : "편집"}
-                      </button>
-                      {editMode && (
-                        <button
-                          type="button"
-                          onClick={() => setEditMode(false)}
-                          className="rounded-lg px-3 py-2 text-sm text-zinc-500 transition-all duration-200 hover:bg-zinc-100 active:scale-95 dark:hover:bg-zinc-800 dark:hover:text-zinc-400"
-                        >
-                          취소
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={handleDelete}
-                        disabled={deleteLoading}
-                        className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition-all duration-200 hover:bg-red-100 active:scale-95 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 disabled:opacity-50"
-                      >
-                        {deleteLoading ? "삭제 중..." : "삭제"}
-                      </button>
-                    </>
-                  )}
-                  {session && (
-                    <button
-                      type="button"
-                      onClick={() => setBoardAddOpen(true)}
-                      className="rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-all duration-200 hover:bg-zinc-100 active:scale-95 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <div className="flex flex-1 min-h-0 overflow-hidden">
+                <div className="flex min-w-0 flex-1 items-center justify-center bg-zinc-100 p-4 dark:bg-zinc-950">
+                  {detail.link ? (
+                    <a
+                      href={detail.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block"
                     >
-                      보드에 추가
-                    </button>
+                      <img
+                        src={detail.image_url}
+                        alt={detail.title}
+                        className="max-h-[70vh] max-w-full object-contain transition-opacity hover:opacity-90"
+                      />
+                    </a>
+                  ) : (
+                    <img
+                      src={detail.image_url}
+                      alt={detail.title}
+                      className="max-h-[70vh] max-w-full object-contain"
+                    />
                   )}
                 </div>
-
-                <div className="flex-1 space-y-4 p-4">
-                  {editMode ? (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="mb-1 block text-xs font-medium text-zinc-500">제목</label>
-                        <input
-                          value={editTitle}
-                          onChange={(e) => setEditTitle(e.target.value)}
-                          className="w-full rounded border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-xs font-medium text-zinc-500">설명</label>
-                        <textarea
-                          value={editDescription}
-                          onChange={(e) => setEditDescription(e.target.value)}
-                          rows={3}
-                          className="w-full rounded border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-xs font-medium text-zinc-500">링크</label>
-                        <input
-                          value={editLink}
-                          onChange={(e) => setEditLink(e.target.value)}
-                          className="w-full rounded border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-xs font-medium text-zinc-500">태그</label>
-                        <TagAutocomplete
-                          value={editTags}
-                          onChange={setEditTags}
-                          placeholder="쉼표로 구분"
-                          className="w-full rounded border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      {detail.description && (
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                          {detail.description}
-                        </p>
-                      )}
-                      {detail.link && (
-                        <a
-                          href={detail.link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block truncate text-sm text-blue-600 underline dark:text-blue-400"
-                        >
-                          {detail.link}
-                        </a>
-                      )}
-                      {detail.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {detail.tags.map((tag) => (
-                            <span
-                              key={tag}
-                              className="rounded bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                <div className="flex w-96 flex-col overflow-y-auto border-l border-zinc-200 dark:border-zinc-800">
+                  <div className="flex items-start justify-between p-4">
+                    <div>
+                      <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+                        {detail.title}
+                      </h2>
                       {detail.author && (
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                        <p className="mt-0.5 text-[11px] font-normal text-zinc-400 dark:text-zinc-200">
                           by {detail.author}
                         </p>
                       )}
-                    </>
-                  )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="rounded p-1 text-zinc-500 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-700 hover:scale-110 active:scale-95 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                      aria-label="닫기"
+                    >
+                      <CloseIcon className="h-5 w-5" />
+                    </button>
+                  </div>
 
-                  <div className="border-t border-zinc-200 pt-4 dark:border-zinc-800">
-                    <h3 className="mb-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  <div className="border-t border-zinc-200 px-4 py-3 dark:border-zinc-800">
+                    {editMode ? (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-200">제목</label>
+                          <input
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            className="w-full rounded border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-200">설명</label>
+                          <textarea
+                            value={editDescription}
+                            onChange={(e) => setEditDescription(e.target.value)}
+                            rows={3}
+                            className="w-full rounded border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-200">링크</label>
+                          <input
+                            value={editLink}
+                            onChange={(e) => setEditLink(e.target.value)}
+                            className="w-full rounded border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-200">태그</label>
+                          <TagAutocomplete
+                            value={editTags}
+                            onChange={setEditTags}
+                            placeholder="쉼표로 구분"
+                            className="w-full rounded border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {detail.description && (
+                          <p className="text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-200">
+                            {detail.description}
+                          </p>
+                        )}
+                        {detail.tags.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {detail.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="rounded bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  <div className="flex-1 border-t border-zinc-200 p-4 dark:border-zinc-800">
+                    <h3 className="mb-3 text-sm font-medium text-zinc-700 dark:text-zinc-100">
                       댓글 ({detail.comments.length})
                     </h3>
                     <div className="mb-4 max-h-40 space-y-2 overflow-y-auto">
                       {detail.comments.length === 0 ? (
-                        <p className="text-sm text-zinc-500">아직 댓글이 없습니다.</p>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-200">아직 댓글이 없습니다.</p>
                       ) : (
                         detail.comments.map((c) => (
                           <div
@@ -355,7 +357,7 @@ export function ImageDetailModal({
                             className="rounded-lg bg-zinc-50 p-2 text-sm dark:bg-zinc-800/50"
                           >
                             <p className="text-zinc-900 dark:text-zinc-100">{c.content}</p>
-                            <p className="mt-1 text-xs text-zinc-500">
+                            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-200">
                               {c.author} · {new Date(c.created_at).toLocaleDateString("ko-KR")}
                             </p>
                           </div>
@@ -378,6 +380,72 @@ export function ImageDetailModal({
                         {commentLoading ? "..." : "작성"}
                       </button>
                     </form>
+                  </div>
+
+                  <div className="mt-auto flex items-center justify-between border-t border-zinc-200 px-4 py-3 dark:border-zinc-800">
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={handleDownload}
+                        className="rounded-lg p-2 text-zinc-600 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-800 active:scale-95 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                        aria-label="다운로드"
+                      >
+                        <DownloadIcon className="h-5 w-5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleLike}
+                        disabled={likeLoading || !session?.user}
+                        className={`flex items-center gap-1 rounded-lg p-2 transition-all duration-200 active:scale-95 disabled:opacity-50 ${
+                          detail?.likedByMe
+                            ? "text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
+                            : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                        }`}
+                        aria-label={detail?.likedByMe ? "좋아요 취소" : "좋아요"}
+                        title={detail?.likedByMe ? "좋아요 취소" : "좋아요"}
+                      >
+                        <HeartIcon className="h-5 w-5 shrink-0" filled={detail?.likedByMe} />
+                      </button>
+                      {session && (
+                        <button
+                          type="button"
+                          onClick={() => setBoardAddOpen(true)}
+                          className="rounded-lg p-2 text-zinc-600 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-800 active:scale-95 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                          aria-label="보드에 추가"
+                        >
+                          <BookmarkIcon className="h-5 w-5" />
+                        </button>
+                      )}
+                    </div>
+                    {detail.isAuthor && (
+                      <div className="flex items-center gap-2">
+                        {editMode && (
+                          <button
+                            type="button"
+                            onClick={() => setEditMode(false)}
+                            className="rounded-lg px-3 py-2 text-sm text-zinc-500 transition-all duration-200 hover:bg-zinc-100 active:scale-95 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                          >
+                            취소
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => (editMode ? handleSaveEdit() : setEditMode(true))}
+                          disabled={saveLoading}
+                          className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition-all duration-200 hover:bg-zinc-100 active:scale-95 dark:text-zinc-100 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 disabled:opacity-50"
+                        >
+                          {editMode ? (saveLoading ? "저장 중..." : "저장") : "편집"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleDelete}
+                          disabled={deleteLoading}
+                          className="rounded-lg px-3 py-2 text-sm font-medium text-red-600 transition-all duration-200 hover:bg-red-50 active:scale-95 dark:text-red-400 dark:hover:bg-red-900/20 disabled:opacity-50"
+                        >
+                          {deleteLoading ? "삭제 중..." : "삭제"}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -402,6 +470,30 @@ function CloseIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}
+
+function DownloadIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+    </svg>
+  );
+}
+
+function HeartIcon({ className, filled }: { className?: string; filled?: boolean }) {
+  return (
+    <svg className={className} fill={filled ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+    </svg>
+  );
+}
+
+function BookmarkIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
     </svg>
   );
 }

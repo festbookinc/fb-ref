@@ -39,7 +39,8 @@ export async function GET(
     const { data: boardImages } = await supabase
       .from("board_images")
       .select("image_id")
-      .eq("board_id", id);
+      .eq("board_id", id)
+      .order("created_at", { ascending: false });
 
     const imageIds = (boardImages || []).map((r) => (r as { image_id: string }).image_id);
 
@@ -75,10 +76,15 @@ export async function GET(
       {} as Record<string, string[]>
     );
 
-    const imagesWithTags = (images || []).map((img) => ({
-      ...img,
-      tags: tagsByImage[img.id] || [],
-    }));
+    const imgById = new Map(
+      (images || []).map((img) => [
+        img.id,
+        { ...img, tags: tagsByImage[img.id] || [] },
+      ])
+    );
+    const imagesWithTags = imageIds
+      .map((id) => imgById.get(id))
+      .filter(Boolean);
 
     const { user_id: _, ...boardWithoutUserId } = board as { user_id?: string };
     return NextResponse.json({ ...boardWithoutUserId, images: imagesWithTags });

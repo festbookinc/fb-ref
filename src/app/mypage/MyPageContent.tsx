@@ -1,25 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
+import { MyImagesGrid } from "./images/MyImagesGrid";
+import { MyLikesGrid } from "./images/MyLikesGrid";
+
+type TabId = "saved" | "boards" | "likes";
 
 interface Board {
   id: string;
   name: string;
   created_at: string;
-}
-
-interface ImageItem {
-  id: string;
-  title: string;
-  image_url: string;
-  tags: string[];
+  thumbnails: string[];
 }
 
 export function MyPageContent() {
   const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expandedBoardId, setExpandedBoardId] = useState<string | null>(null);
-  const [boardImages, setBoardImages] = useState<Record<string, ImageItem[]>>({});
   const [newBoardName, setNewBoardName] = useState("");
   const [createLoading, setCreateLoading] = useState(false);
   const [editBoardId, setEditBoardId] = useState<string | null>(null);
@@ -37,13 +34,6 @@ export function MyPageContent() {
     fetchBoards();
   }, []);
 
-  const fetchBoardImages = async (boardId: string) => {
-    if (boardImages[boardId]) return;
-    const res = await fetch(`/api/boards/${boardId}`);
-    const data = await res.json();
-    if (data.images) setBoardImages((prev) => ({ ...prev, [boardId]: data.images }));
-  };
-
   const handleCreateBoard = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newBoardName.trim()) return;
@@ -56,7 +46,7 @@ export function MyPageContent() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setBoards((prev) => [{ ...data.board }, ...prev]);
+      setBoards((prev) => [{ ...data.board, thumbnails: [] }, ...prev]);
       setNewBoardName("");
     } catch (err) {
       console.error(err);
@@ -71,11 +61,6 @@ export function MyPageContent() {
       const res = await fetch(`/api/boards/${boardId}`, { method: "DELETE" });
       if (!res.ok) throw new Error("삭제 실패");
       setBoards((prev) => prev.filter((b) => b.id !== boardId));
-      setBoardImages((prev) => {
-        const next = { ...prev };
-        delete next[boardId];
-        return next;
-      });
     } catch (err) {
       console.error(err);
     }
@@ -100,187 +85,173 @@ export function MyPageContent() {
     }
   };
 
-  const [myImages, setMyImages] = useState<ImageItem[]>([]);
-  const [myImagesLoading, setMyImagesLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<TabId>("saved");
 
-  useEffect(() => {
-    fetch("/api/images?mine=1&limit=12")
-      .then((r) => r.json())
-      .then((data) => setMyImages(data.images || []))
-      .catch(() => setMyImages([]))
-      .finally(() => setMyImagesLoading(false));
-  }, []);
+  const tabs: { id: TabId; label: string }[] = [
+    { id: "saved", label: "저장한 이미지" },
+    { id: "boards", label: "보드" },
+    { id: "likes", label: "좋아요" },
+  ];
 
   return (
-    <div className="space-y-8">
-      <section>
-        <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-          내가 업로드한 이미지
-        </h2>
-        {myImagesLoading ? (
-          <p className="text-sm text-zinc-500">로딩 중...</p>
-        ) : myImages.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-zinc-300 p-8 text-center text-sm text-zinc-500 dark:border-zinc-600">
-            아직 업로드한 이미지가 없습니다.
-          </p>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-            {myImages.map((img) => (
-              <a
-                key={img.id}
-                href={`/?open=${img.id}`}
-                className="group overflow-hidden rounded-lg border border-zinc-200 shadow-sm transition-all duration-200 hover:border-zinc-300 hover:shadow-md active:scale-[0.99] dark:border-zinc-700 dark:hover:border-zinc-600"
-              >
-                <div className="aspect-[5/7] overflow-hidden bg-zinc-100 dark:bg-zinc-800">
-                  <img
-                    src={img.image_url}
-                    alt={img.title}
-                    className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-105"
-                  />
-                </div>
-                <p className="truncate p-2 text-xs text-zinc-700 dark:text-zinc-300">
-                  {img.title}
-                </p>
-              </a>
-            ))}
-          </div>
-        )}
-      </section>
+    <div>
+      <nav className="mb-6 flex gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1 dark:border-zinc-700 dark:bg-zinc-800/50">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex-1 rounded-md px-4 py-2.5 text-sm font-medium transition-colors ${
+              activeTab === tab.id
+                ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-zinc-100"
+                : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-200 dark:hover:text-zinc-100"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
 
-      <section>
-        <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-          보드 관리
-        </h2>
-        <form onSubmit={handleCreateBoard} className="mb-4 flex gap-2">
-          <input
+      {activeTab === "saved" && (
+        <div className="mt-4">
+          <MyImagesGrid />
+        </div>
+      )}
+
+      {activeTab === "boards" && (
+        <section className="mt-4">
+          <form onSubmit={handleCreateBoard} className="mb-4 flex gap-2">
+            <input
             type="text"
             value={newBoardName}
             onChange={(e) => setNewBoardName(e.target.value)}
-            placeholder="새 보드 이름"
-            className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-          />
-          <button
-            type="submit"
-            disabled={createLoading || !newBoardName.trim()}
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] dark:bg-zinc-100 dark:text-zinc-900"
-          >
-            {createLoading ? "생성 중..." : "보드 만들기"}
-          </button>
-        </form>
+              placeholder="새 보드 이름"
+              className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+            />
+            <button
+              type="submit"
+              disabled={createLoading || !newBoardName.trim()}
+              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] dark:bg-zinc-100 dark:text-zinc-900"
+            >
+              {createLoading ? "생성 중..." : "보드 만들기"}
+            </button>
+          </form>
 
-        {loading ? (
-          <div className="py-8 text-center text-zinc-500">로딩 중...</div>
-        ) : boards.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-zinc-300 p-8 text-center text-sm text-zinc-500 dark:border-zinc-600">
-            아직 보드가 없습니다. 위에서 새 보드를 만들어 보세요.
-          </p>
-        ) : (
-          <div className="space-y-4">
+          {loading ? (
+            <div className="py-8 text-center text-zinc-500 dark:text-zinc-200">로딩 중...</div>
+          ) : boards.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-zinc-300 p-8 text-center text-sm text-zinc-500 dark:border-zinc-600 dark:text-zinc-200">
+              아직 보드가 없습니다. 위에서 새 보드를 만들어 보세요.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {boards.map((board) => (
               <div
                 key={board.id}
-                className="rounded-lg border border-zinc-200 bg-white transition-colors duration-200 dark:border-zinc-800 dark:bg-zinc-900"
+                className="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm transition-all duration-200 hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
               >
-                <div
-                  className="flex cursor-pointer items-center justify-between p-4"
-                  onClick={() => {
-                    setExpandedBoardId((prev) => (prev === board.id ? null : board.id));
-                    if (expandedBoardId !== board.id) fetchBoardImages(board.id);
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-zinc-500">
-                      {expandedBoardId === board.id ? "▼" : "▶"}
-                    </span>
-                    {editBoardId === board.id ? (
-                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          className="rounded border border-zinc-200 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-800"
-                          autoFocus
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleSaveEdit(board.id)}
-                          className="text-sm text-zinc-600 hover:underline dark:text-zinc-400"
-                        >
-                          저장
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditBoardId(null);
-                            setEditName("");
-                          }}
-                          className="text-sm text-zinc-500 hover:underline"
-                        >
-                          취소
-                        </button>
-                      </div>
-                    ) : (
-                      <h3 className="font-medium text-zinc-900 dark:text-zinc-100">
-                        {board.name}
-                      </h3>
-                    )}
-                  </div>
-                  {editBoardId !== board.id && (
-                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                {editBoardId === board.id ? (
+                  <>
+                    <div className="flex aspect-[15/7] overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                      {board.thumbnails.length > 0 ? (
+                        board.thumbnails.map((url, i) => (
+                          <div
+                            key={i}
+                            className="flex-1 overflow-hidden border-r last:border-r-0 border-zinc-200 dark:border-zinc-700"
+                          >
+                            <img src={url} alt="" className="h-full w-full object-cover" />
+                          </div>
+                        ))
+                      ) : (
+                        <div className="flex flex-1 items-center justify-center text-zinc-400 dark:text-zinc-200">
+                          <span className="text-sm">이미지 없음</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 p-3">
+                      <input
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="flex-1 rounded border border-zinc-200 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleSaveEdit(board.id)}
+                        className="text-sm text-zinc-600 hover:underline dark:text-zinc-200"
+                      >
+                        저장
+                      </button>
                       <button
                         type="button"
                         onClick={() => {
-                          setEditBoardId(board.id);
-                          setEditName(board.name);
+                          setEditBoardId(null);
+                          setEditName("");
                         }}
-                        className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-400"
+                        className="text-sm text-zinc-500 hover:underline"
                       >
-                        수정
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteBoard(board.id)}
-                        className="text-sm text-red-500 hover:text-red-700"
-                      >
-                        삭제
+                        취소
                       </button>
                     </div>
-                  )}
-                </div>
-
-                {expandedBoardId === board.id && (
-                  <div className="border-t border-zinc-200 p-4 dark:border-zinc-800">
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                      {(boardImages[board.id] || []).map((img) => (
-                        <a
-                          key={img.id}
-                          href={`/?open=${img.id}`}
-                          className="group block overflow-hidden rounded-lg border border-zinc-200 transition-all duration-200 hover:border-zinc-300 dark:border-zinc-700 dark:hover:border-zinc-600"
-                        >
-                          <div className="aspect-[5/7] overflow-hidden bg-zinc-100 dark:bg-zinc-800">
-                            <img
-                              src={img.image_url}
-                              alt={img.title}
-                              className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-105"
-                            />
+                  </>
+                ) : (
+                  <Link href={`/mypage/boards/${board.id}`} className="block">
+                    <div className="flex aspect-[15/7] overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                      {board.thumbnails.length > 0 ? (
+                        board.thumbnails.map((url, i) => (
+                          <div
+                            key={i}
+                            className="flex-1 overflow-hidden border-r last:border-r-0 border-zinc-200 dark:border-zinc-700"
+                          >
+                            <img src={url} alt="" className="h-full w-full object-cover" />
                           </div>
-                          <p className="truncate p-2 text-xs text-zinc-700 dark:text-zinc-300">
-                            {img.title}
-                          </p>
-                        </a>
-                      ))}
+                        ))
+                      ) : (
+                        <div className="flex flex-1 items-center justify-center text-zinc-400 dark:text-zinc-200">
+                          <span className="text-sm">이미지 없음</span>
+                        </div>
+                      )}
                     </div>
-                    {(boardImages[board.id] || []).length === 0 && (
-                      <p className="py-8 text-center text-sm text-zinc-500">
-                        이 보드에 추가된 이미지가 없습니다.
-                      </p>
-                    )}
+                    <div className="p-3">
+                      <h3 className="truncate font-medium text-zinc-900 dark:text-zinc-100">
+                        {board.name}
+                      </h3>
+                    </div>
+                  </Link>
+                )}
+                {editBoardId !== board.id && (
+                  <div className="flex gap-2 border-t border-zinc-200 px-3 py-2 dark:border-zinc-800">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditBoardId(board.id);
+                        setEditName(board.name);
+                      }}
+                      className="text-sm text-zinc-500 hover:text-zinc-700 dark:text-zinc-200 dark:hover:text-zinc-100"
+                    >
+                      수정
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteBoard(board.id)}
+                      className="text-sm text-red-500 hover:text-red-700 dark:text-red-400"
+                    >
+                      삭제
+                    </button>
                   </div>
                 )}
               </div>
             ))}
-          </div>
-        )}
-      </section>
+            </div>
+          )}
+        </section>
+      )}
+
+      {activeTab === "likes" && (
+        <div className="mt-4">
+          <MyLikesGrid />
+        </div>
+      )}
     </div>
   );
 }

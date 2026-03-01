@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     const q = searchParams.get("q")?.trim() || "";
     const tagsParam = searchParams.get("tags") || "";
     const mine = searchParams.get("mine") === "1";
+    const likes = searchParams.get("likes") === "1";
     const tagNames = tagsParam
       ? tagsParam.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean)
       : [];
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
     let imageIdsFilter: string[] | null = null;
     let userIdFilter: string | null = null;
 
-    if (mine) {
+    if (mine || likes) {
       const session = await auth();
       if (!session?.user?.email) {
         return NextResponse.json({ error: "로그인이 필요합니다" }, { status: 401 });
@@ -31,60 +32,35 @@ export async function GET(request: NextRequest) {
         .select("id")
         .eq("email", session.user.email)
         .single();
-      if (profile?.id) userIdFilter = profile.id;
+      if (profile?.id) {
+        if (mine) {
+          userIdFilter = profile.id;
+        } else if (likes) {
+          const { data: likedRows } = await supabase
+            .from("image_likes")
+            .select("image_id")
+            .eq("user_id", profile.id);
+          imageIdsFilter = (likedRows || []).map((r) => r.image_id).filter(Boolean);
+        }
+      } else if (likes) {
+        imageIdsFilter = [];
+      }
     }
 
-    // 검색어 필터
+    // 검색어 필터 (RPC 사용 - 한글 검색 안정화. 마이그레이션 003_search_images.sql 실행 필요)
     if (q) {
-      const searchPattern = `%${q}%`;
-      const idsFromTitle = await supabase
-        .from("images")
-        .select("id")
-        .ilike("title", searchPattern);
-      const idsFromDesc = await supabase
-        .from("images")
-        .select("id")
-        .ilike("description", searchPattern);
-      const { data: tags } = await supabase
-        .from("tags")
-        .select("id")
-        .ilike("name", searchPattern);
-      const tagIds = (tags || []).map((t) => t.id);
-      let idsFromTags: { id: string }[] = [];
-      if (tagIds.length > 0) {
-        const { data: it } = await supabase
-          .from("image_tags")
-          .select("image_id")
-          .in("tag_id", tagIds);
-        idsFromTags = (it || []).map((row) => ({ id: (row as { image_id: string }).image_id }));
+      const normalizedQuery = q.normalize("NFC");
+      const { data: searchResult, error: searchError } = await supabase.rpc("search_images", {
+        search_query: normalizedQuery,
+      });
+      if (searchError) {
+        console.error("Search RPC error:", searchError);
+        return NextResponse.json({
+          error: "검색 실패. Supabase SQL Editor에서 supabase/migrations/003_search_images.sql 내용을 실행해 주세요.",
+        }, { status: 500 });
       }
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id")
-        .or(`name.ilike.${searchPattern},email.ilike.${searchPattern}`);
-      const profileIds = (profiles || []).map((p) => p.id);
-      let idsFromAuthor: { id: string }[] = [];
-      if (profileIds.length > 0) {
-        const { data: imgs } = await supabase
-          .from("images")
-          .select("id")
-          .in("user_id", profileIds);
-        idsFromAuthor = imgs || [];
-      }
-      const { data: comments } = await supabase
-        .from("comments")
-        .select("image_id")
-        .ilike("content", searchPattern);
-      const idsFromComments = (comments || []).map((c) => ({ id: (c as { image_id: string }).image_id }));
-
-      const allIds = new Set<string>([
-        ...(idsFromTitle.data || []).map((r) => r.id),
-        ...(idsFromDesc.data || []).map((r) => r.id),
-        ...idsFromTags.map((r) => r.id),
-        ...idsFromAuthor.map((r) => r.id),
-        ...idsFromComments.map((r) => r.id),
-      ]);
-      imageIdsFilter = [...allIds];
+      const ids = (searchResult || []).map((r: { image_id: string }) => r.image_id).filter(Boolean);
+      imageIdsFilter = [...new Set(ids)];
     }
 
     // 태그 필터 (선택한 태그 중 하나라도 가진 이미지)

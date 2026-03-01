@@ -30,7 +30,35 @@ export async function GET() {
       return NextResponse.json({ error: "보드 조회 실패" }, { status: 500 });
     }
 
-    return NextResponse.json({ boards: boards || [] });
+    const boardsWithThumbnails = await Promise.all(
+      (boards || []).map(async (board) => {
+        const { data: recent } = await supabase
+          .from("board_images")
+          .select("image_id")
+          .eq("board_id", board.id)
+          .order("created_at", { ascending: false })
+          .limit(3);
+        const imageIds = (recent || []).map((r) => (r as { image_id: string }).image_id);
+        if (imageIds.length === 0) {
+          return { ...board, thumbnails: [] };
+        }
+        const { data: imageRows } = await supabase
+          .from("images")
+          .select("id, image_url")
+          .in("id", imageIds);
+        const urlById = (imageRows || []).reduce(
+          (acc, r) => {
+            acc[(r as { id: string }).id] = (r as { image_url: string }).image_url;
+            return acc;
+          },
+          {} as Record<string, string>
+        );
+        const thumbnails = imageIds.map((id) => urlById[id]).filter(Boolean);
+        return { ...board, thumbnails };
+      })
+    );
+
+    return NextResponse.json({ boards: boardsWithThumbnails });
   } catch (err) {
     console.error("Boards fetch error:", err);
     return NextResponse.json({ error: "서버 오류" }, { status: 500 });

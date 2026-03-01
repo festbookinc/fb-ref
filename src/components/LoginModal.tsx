@@ -37,14 +37,14 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1 text-zinc-500 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-700 hover:scale-110 active:scale-95 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+            className="rounded-lg p-1 text-zinc-500 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-700 hover:scale-110 active:scale-95 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
             aria-label="닫기"
           >
             <CloseIcon className="h-5 w-5" />
           </button>
         </div>
 
-        <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-200">
           허용된 Google 계정으로만 로그인할 수 있습니다.
         </p>
 
@@ -63,7 +63,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             onClose();
             router.push("/login");
           }}
-          className="mt-3 w-full text-sm text-zinc-500 underline transition-colors duration-150 hover:text-zinc-700 dark:hover:text-zinc-400 dark:hover:text-zinc-300"
+          className="mt-3 w-full text-sm text-zinc-500 underline transition-colors duration-150 hover:text-zinc-700 dark:hover:text-zinc-100"
         >
           전체 로그인 페이지로 이동
         </button>

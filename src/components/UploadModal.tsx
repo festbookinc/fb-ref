@@ -27,9 +27,17 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
   const [files, setFiles] = useState<{ file: File; title: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [openFilePicker, setOpenFilePicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isMultiFile = files.length > 0;
+
+  useEffect(() => {
+    if (mode === "file" && openFilePicker && fileInputRef.current && !isMultiFile) {
+      fileInputRef.current.click();
+      setOpenFilePicker(false);
+    }
+  }, [mode, openFilePicker, isMultiFile]);
 
   useEffect(() => {
     if (isOpen && pendingFiles && pendingFiles.length > 0) {
@@ -51,6 +59,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
     setFile(null);
     setFiles([]);
     setError("");
+    setOpenFilePicker(false);
   };
 
   const handleClose = () => {
@@ -167,7 +176,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
           <button
             type="button"
             onClick={handleClose}
-            className="rounded-lg p-1 text-zinc-500 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-700 hover:scale-110 active:scale-95 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+            className="rounded-lg p-1 text-zinc-500 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-700 hover:scale-110 active:scale-95 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
             aria-label="닫기"
           >
             <CloseIcon className="h-5 w-5" />
@@ -179,11 +188,14 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => setMode("file")}
+              onClick={() => {
+                setMode("file");
+                setOpenFilePicker(true);
+              }}
               className={`rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
                 mode === "file"
                   ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                  : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                  : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
               }`}
             >
               파일 업로드
@@ -194,7 +206,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
               className={`rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
                 mode === "url"
                   ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                  : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                  : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
               }`}
             >
               이미지 링크
@@ -204,8 +216,8 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
           {mode === "file" ? (
             isMultiFile ? (
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  이미지 ({files.length}개)
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-100">
+                  이미지 ({files.length}개)<sup className="text-[0.65em] text-red-500">필수</sup>
                 </label>
                 <div className="max-h-40 overflow-y-auto space-y-2 rounded-lg border border-zinc-200 dark:border-zinc-700 p-2">
                   {files.map((item, i) => (
@@ -217,13 +229,13 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
                         placeholder="제목"
                         className="flex-1 rounded border border-zinc-200 bg-white px-2 py-1 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
                       />
-                      <span className="shrink-0 truncate max-w-[120px] text-xs text-zinc-500">
+                      <span className="shrink-0 truncate max-w-[120px] text-xs text-zinc-500 dark:text-zinc-200">
                         {item.file.name}
                       </span>
                       <button
                         type="button"
                         onClick={() => removeFile(i)}
-                        className="shrink-0 rounded p-1 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
+                        className="shrink-0 rounded p-1 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
                         aria-label="제거"
                       >
                         ×
@@ -234,13 +246,13 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
               </div>
             ) : (
               <div>
-                <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  이미지 (필수)
+                <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-100">
+                  이미지<sup className="text-[0.65em] text-red-500">필수</sup>
                 </label>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  accept="image/jpeg,image/png,image/gif,image/webp,image/avif"
                   multiple
                   onChange={(e) => {
                     const selected = Array.from(e.target.files ?? []);
@@ -252,15 +264,22 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
                       setFiles([]);
                     }
                   }}
-                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                  className="hidden"
                 />
-                {file && <p className="mt-1 text-xs text-zinc-500">{file.name}</p>}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full rounded-lg border border-zinc-200 border-dashed bg-zinc-50 px-3 py-4 text-sm text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                >
+                  {file ? file.name : "파일 선택"}
+                </button>
+                {file && <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-200">{file.name}</p>}
               </div>
             )
           ) : (
             <div>
-              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                이미지 URL (필수)
+              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-100">
+                이미지 URL<sup className="text-[0.65em] text-red-500">필수</sup>
               </label>
               <input
                 type="url"
@@ -274,8 +293,8 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
 
           {!isMultiFile && (
             <div>
-              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                제목 (필수)
+              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-100">
+                제목<sup className="text-[0.65em] text-red-500">필수</sup>
               </label>
               <input
                 type="text"
@@ -289,7 +308,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
           )}
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-100">
               설명
             </label>
             <textarea
@@ -302,7 +321,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-100">
               링크
             </label>
             <input
@@ -315,7 +334,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-100">
               태그 (쉼표 또는 공백으로 구분, 입력 시 자동완성)
             </label>
             <TagAutocomplete
@@ -336,7 +355,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
             <button
               type="button"
               onClick={handleClose}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-700 transition-all duration-200 hover:bg-zinc-100 active:scale-95 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-700 transition-all duration-200 hover:bg-zinc-100 active:scale-95 dark:text-zinc-100 dark:hover:bg-zinc-800"
             >
               취소
             </button>
