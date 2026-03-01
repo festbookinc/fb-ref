@@ -19,12 +19,20 @@ export function BoardAddModal({ isOpen, onClose, imageId, onSuccess }: BoardAddM
   const [boards, setBoards] = useState<Board[]>([]);
   const [inBoardIds, setInBoardIds] = useState<Set<string>>(new Set());
   const [newBoardName, setNewBoardName] = useState("");
+  const [boardSearch, setBoardSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const filteredBoards = boardSearch.trim()
+    ? (boards || []).filter((b) => b.name.toLowerCase().includes(boardSearch.trim().toLowerCase()))
+    : boards || [];
+
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      setBoardSearch("");
+      return;
+    }
     setError("");
     Promise.all([
       fetch("/api/boards").then((r) => r.json()),
@@ -146,12 +154,23 @@ export function BoardAddModal({ isOpen, onClose, imageId, onSuccess }: BoardAddM
           </button>
         </form>
 
+        {boards.length > 0 && (
+          <input
+            type="text"
+            value={boardSearch}
+            onChange={(e) => setBoardSearch(e.target.value)}
+            placeholder="보드 검색..."
+            className="mb-3 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+          />
+        )}
         <div className="max-h-48 overflow-y-auto">
-          {boards.length === 0 ? (
-            <p className="py-4 text-center text-sm text-zinc-500 dark:text-zinc-200">보드가 없습니다. 위에서 새로 만드세요.</p>
+          {filteredBoards.length === 0 ? (
+            <p className="py-4 text-center text-sm text-zinc-500 dark:text-zinc-200">
+              {boardSearch.trim() ? "검색 결과 없음" : "보드가 없습니다. 위에서 새로 만드세요."}
+            </p>
           ) : (
             <ul className="space-y-1">
-              {boards.map((board) => (
+              {filteredBoards.map((board) => (
                 <li key={board.id}>
                   <button
                     type="button"

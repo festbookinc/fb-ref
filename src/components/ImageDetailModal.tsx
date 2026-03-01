@@ -236,9 +236,13 @@ export function ImageDetailModal({
           <div className="py-24 text-center text-zinc-500 dark:text-zinc-200">이미지를 불러올 수 없습니다.</div>
         ) : (
           <>
-            <div className="flex flex-1 flex-col overflow-hidden">
-              <div className="flex flex-1 min-h-0 overflow-hidden">
-                <div className="flex min-w-0 flex-1 items-center justify-center bg-zinc-100 p-4 dark:bg-zinc-950">
+            <div className="flex flex-1 flex-col overflow-y-auto md:overflow-hidden">
+              <div className="flex flex-1 min-h-0 flex-col overflow-hidden md:flex-row">
+                <div
+                  className={`flex min-w-0 shrink-0 items-center justify-center bg-zinc-100 p-4 dark:bg-zinc-950 md:min-h-0 md:flex-1 ${
+                    editMode ? "min-h-[12vh] md:min-h-0" : "min-h-[40vh] flex-1 md:min-h-0"
+                  }`}
+                >
                   {detail.link ? (
                     <a
                       href={detail.link}
@@ -249,18 +253,22 @@ export function ImageDetailModal({
                       <img
                         src={detail.image_url}
                         alt={detail.title}
-                        className="max-h-[70vh] max-w-full object-contain transition-opacity hover:opacity-90"
+                        className={`max-w-full object-contain transition-opacity hover:opacity-90 ${
+                          editMode ? "max-h-[15vh] md:max-h-[70vh]" : "max-h-[50vh] md:max-h-[70vh]"
+                        }`}
                       />
                     </a>
                   ) : (
                     <img
                       src={detail.image_url}
                       alt={detail.title}
-                      className="max-h-[70vh] max-w-full object-contain"
+                      className={`max-w-full object-contain ${
+                        editMode ? "max-h-[15vh] md:max-h-[70vh]" : "max-h-[50vh] md:max-h-[70vh]"
+                      }`}
                     />
                   )}
                 </div>
-                <div className="flex w-96 flex-col overflow-y-auto border-l border-zinc-200 dark:border-zinc-800">
+                <div className="flex w-full flex-col overflow-y-auto border-t border-zinc-200 dark:border-zinc-800 md:w-96 md:min-w-[24rem] md:border-t-0 md:border-l">
                   <div className="flex items-start justify-between p-4">
                     <div>
                       <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
@@ -275,7 +283,7 @@ export function ImageDetailModal({
                     <button
                       type="button"
                       onClick={onClose}
-                      className="rounded p-1 text-zinc-500 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-700 hover:scale-110 active:scale-95 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                      className="min-h-[44px] min-w-[44px] -m-2 flex items-center justify-center rounded p-2 text-zinc-500 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-700 hover:scale-110 active:scale-95 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
                       aria-label="닫기"
                     >
                       <CloseIcon className="h-5 w-5" />
@@ -290,7 +298,7 @@ export function ImageDetailModal({
                           <input
                             value={editTitle}
                             onChange={(e) => setEditTitle(e.target.value)}
-                            className="w-full rounded border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                            className="w-full rounded border border-zinc-200 px-3 py-2 text-base dark:border-zinc-700 dark:bg-zinc-800"
                           />
                         </div>
                         <div>
@@ -299,7 +307,7 @@ export function ImageDetailModal({
                             value={editDescription}
                             onChange={(e) => setEditDescription(e.target.value)}
                             rows={3}
-                            className="w-full rounded border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                            className="w-full rounded border border-zinc-200 px-3 py-2 text-base dark:border-zinc-700 dark:bg-zinc-800"
                           />
                         </div>
                         <div>
@@ -307,7 +315,7 @@ export function ImageDetailModal({
                           <input
                             value={editLink}
                             onChange={(e) => setEditLink(e.target.value)}
-                            className="w-full rounded border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                            className="w-full rounded border border-zinc-200 px-3 py-2 text-base dark:border-zinc-700 dark:bg-zinc-800"
                           />
                         </div>
                         <div>
@@ -316,7 +324,7 @@ export function ImageDetailModal({
                             value={editTags}
                             onChange={setEditTags}
                             placeholder="쉼표로 구분"
-                            className="w-full rounded border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                            className="w-full rounded border border-zinc-200 px-3 py-2 text-base dark:border-zinc-700 dark:bg-zinc-800"
                           />
                         </div>
                       </div>
@@ -369,7 +377,7 @@ export function ImageDetailModal({
                         value={commentText}
                         onChange={(e) => setCommentText(e.target.value)}
                         placeholder="댓글 작성..."
-                        className="flex-1 rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                        className="flex-1 rounded-lg border border-zinc-200 px-3 py-2 text-base dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                         disabled={commentLoading}
                       />
                       <button
@@ -382,12 +390,12 @@ export function ImageDetailModal({
                     </form>
                   </div>
 
-                  <div className="mt-auto flex items-center justify-between border-t border-zinc-200 px-4 py-3 dark:border-zinc-800">
+                  <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-zinc-200 px-4 py-3 dark:border-zinc-800">
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onClick={handleDownload}
-                        className="rounded-lg p-2 text-zinc-600 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-800 active:scale-95 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                        className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg p-3 text-zinc-600 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-800 active:scale-95 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
                         aria-label="다운로드"
                       >
                         <DownloadIcon className="h-5 w-5" />
@@ -396,7 +404,7 @@ export function ImageDetailModal({
                         type="button"
                         onClick={handleLike}
                         disabled={likeLoading || !session?.user}
-                        className={`flex items-center gap-1 rounded-lg p-2 transition-all duration-200 active:scale-95 disabled:opacity-50 ${
+                        className={`min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg p-3 transition-all duration-200 active:scale-95 disabled:opacity-50 ${
                           detail?.likedByMe
                             ? "text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
                             : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
@@ -410,7 +418,7 @@ export function ImageDetailModal({
                         <button
                           type="button"
                           onClick={() => setBoardAddOpen(true)}
-                          className="rounded-lg p-2 text-zinc-600 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-800 active:scale-95 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg p-3 text-zinc-600 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-800 active:scale-95 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
                           aria-label="보드에 추가"
                         >
                           <BookmarkIcon className="h-5 w-5" />

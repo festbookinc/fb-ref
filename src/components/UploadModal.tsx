@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { TagAutocomplete } from "./TagAutocomplete";
+import { BoardSelectModal } from "./BoardSelectModal";
 import { useUpload } from "@/contexts/UploadContext";
 
 function fileNameToTitle(name: string): string {
@@ -29,6 +30,9 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
   const [error, setError] = useState("");
   const [openFilePicker, setOpenFilePicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedBoardIds, setSelectedBoardIds] = useState<Set<string>>(new Set());
+  const [newBoardName, setNewBoardName] = useState("");
+  const [boardSelectOpen, setBoardSelectOpen] = useState(false);
 
   const isMultiFile = files.length > 0;
 
@@ -60,6 +64,35 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
     setFiles([]);
     setError("");
     setOpenFilePicker(false);
+    setSelectedBoardIds(new Set());
+    setNewBoardName("");
+    setBoardSelectOpen(false);
+  };
+
+  const getBoardIdsForAdd = async (): Promise<string[]> => {
+    let ids = [...selectedBoardIds];
+    if (newBoardName.trim()) {
+      const createRes = await fetch("/api/boards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newBoardName.trim() }),
+      });
+      const createData = await createRes.json();
+      if (createRes.ok && createData.board?.id) {
+        ids = [createData.board.id, ...ids];
+      }
+    }
+    return ids;
+  };
+
+  const addImageToBoards = async (imageId: string, boardIds: string[]) => {
+    for (const boardId of boardIds) {
+      await fetch(`/api/boards/${boardId}/images`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageId }),
+      });
+    }
   };
 
   const handleClose = () => {
@@ -87,7 +120,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
         const sharedDesc = description.trim();
         const sharedLink = link.trim();
         const sharedTags = tags.trim();
-        let successCount = 0;
+        const createdIds: string[] = [];
         const errors: string[] = [];
 
         for (const { file: f, title: t } of files) {
@@ -107,15 +140,19 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
 
           if (!res.ok) {
             errors.push(`${f.name}: ${data.error || "업로드 실패"}`);
-          } else {
-            successCount++;
+          } else if (data.image?.id) {
+            createdIds.push(data.image.id);
           }
         }
 
         if (errors.length > 0) {
           setError(errors.join("\n"));
         }
-        if (successCount > 0) {
+        if (createdIds.length > 0) {
+          const boardIds = await getBoardIdsForAdd();
+          for (const imageId of createdIds) {
+            await addImageToBoards(imageId, boardIds);
+          }
           handleClose();
           onSuccess();
         }
@@ -145,6 +182,10 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
           return;
         }
 
+        if (data.image?.id) {
+          const boardIds = await getBoardIdsForAdd();
+          await addImageToBoards(data.image.id, boardIds);
+        }
         handleClose();
         onSuccess();
       }
@@ -166,7 +207,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
       aria-labelledby="upload-modal-title"
     >
       <div
-        className="w-full max-w-lg rounded-xl border border-zinc-200 bg-white p-6 shadow-xl animate-modal-content dark:border-zinc-800 dark:bg-zinc-900"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-zinc-200 bg-white p-4 shadow-xl animate-modal-content dark:border-zinc-800 dark:bg-zinc-900 sm:p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -176,7 +217,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
           <button
             type="button"
             onClick={handleClose}
-            className="rounded-lg p-1 text-zinc-500 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-700 hover:scale-110 active:scale-95 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg p-2 text-zinc-500 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-700 hover:scale-110 active:scale-95 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
             aria-label="닫기"
           >
             <CloseIcon className="h-5 w-5" />
@@ -345,6 +386,21 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
             />
           </div>
 
+          <button
+            type="button"
+            onClick={() => setBoardSelectOpen(true)}
+            className="flex w-full items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-left text-sm transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800/50 dark:hover:bg-zinc-800"
+          >
+            <span className="font-medium text-zinc-700 dark:text-zinc-100">보드에 추가 (선택)</span>
+            {selectedBoardIds.size > 0 || newBoardName.trim() ? (
+              <span className="text-zinc-500 dark:text-zinc-200">
+                {selectedBoardIds.size + (newBoardName.trim() ? 1 : 0)}개
+              </span>
+            ) : (
+              <span className="text-zinc-400">›</span>
+            )}
+          </button>
+
           {error && (
             <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
               {error}
@@ -369,6 +425,17 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
           </div>
         </form>
       </div>
+
+      <BoardSelectModal
+        isOpen={boardSelectOpen}
+        onClose={() => setBoardSelectOpen(false)}
+        selectedBoardIds={selectedBoardIds}
+        newBoardName={newBoardName}
+        onApply={(ids, name) => {
+          setSelectedBoardIds(ids);
+          setNewBoardName(name);
+        }}
+      />
     </div>
   );
 }

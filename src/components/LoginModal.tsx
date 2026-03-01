@@ -27,7 +27,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       aria-labelledby="login-modal-title"
     >
       <div
-        className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-6 shadow-xl animate-modal-content dark:border-zinc-800 dark:bg-zinc-900"
+        className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-4 shadow-xl animate-modal-content dark:border-zinc-800 dark:bg-zinc-900 sm:p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -51,7 +51,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         <button
           type="button"
           onClick={handleGoogleSignIn}
-          className="flex w-full items-center justify-center gap-3 rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm font-medium text-zinc-900 transition-all duration-200 hover:bg-zinc-50 hover:scale-[1.01] active:scale-[0.99] dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+          className="flex min-h-[44px] w-full items-center justify-center gap-3 rounded-lg border border-zinc-200 bg-white px-4 py-3 text-base font-medium text-zinc-900 transition-all duration-200 hover:bg-zinc-50 hover:scale-[1.01] active:scale-[0.99] dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
         >
           <GoogleIcon className="h-5 w-5" />
           Google로 로그인

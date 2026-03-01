@@ -24,6 +24,15 @@ export function ImageArchiveGrid() {
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState<"latest" | "random">("latest");
   const [cardSize, setCardSize] = useState(280);
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  const effectiveCardSize = isMobile ? 160 : cardSize;
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const loaderRef = useRef<HTMLDivElement>(null);
@@ -108,8 +117,8 @@ export function ImageArchiveGrid() {
 
   return (
     <div className="w-full px-4 py-2 sm:px-6 sm:py-3">
-      <div className="mb-6 flex flex-wrap items-center justify-end gap-4">
-        <div className="flex items-center gap-3">
+      <div className="mb-6 flex flex-wrap items-center justify-end gap-3 sm:gap-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <select
             value={sort}
             onChange={handleSortChange}
@@ -119,8 +128,8 @@ export function ImageArchiveGrid() {
             <option value="latest">최신순</option>
             <option value="random">랜덤순</option>
           </select>
-          <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700" />
-          <div className="flex items-center gap-2">
+          <div className="hidden h-4 w-px bg-zinc-200 sm:block dark:bg-zinc-700" />
+          <div className="hidden items-center gap-2 sm:flex">
             <span className="text-sm text-zinc-500 dark:text-zinc-200">카드 크기</span>
             <input
               type="range"
@@ -138,7 +147,7 @@ export function ImageArchiveGrid() {
       <div
         className="grid gap-2 sm:gap-3"
         style={{
-          gridTemplateColumns: `repeat(auto-fill, minmax(${cardSize}px, 1fr))`,
+          gridTemplateColumns: `repeat(auto-fill, minmax(${effectiveCardSize}px, 1fr))`,
         }}
       >
         {images.map((img) => (

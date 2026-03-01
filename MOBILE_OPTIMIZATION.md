@@ -151,14 +151,14 @@
 
 ## 구현 체크리스트
 
-- [ ] ImageDetailModal: `md:` 분기, 모바일 `flex-col`
-- [ ] Navbar: 모바일 검색 아이콘 + 검색 모달
-- [ ] 이미지 그리드: 모바일 기본 카드 크기 조정
-- [ ] 모달: `max-h-[90vh]`, `p-4 sm:p-6`, 입력 16px
-- [ ] 터치 타겟: 주요 버튼 44px
-- [ ] 마이페이지: 보드 폼 `flex-col`, 탭 반응형
-- [ ] layout: viewport, overflow-x-hidden
-- [ ] DropZone: 모바일 안내 문구
+- [x] ImageDetailModal: `md:` 분기, 모바일 `flex-col`
+- [x] Navbar: 모바일 검색 아이콘 + 검색 모달
+- [x] 이미지 그리드: 모바일 기본 카드 크기 160px, 카드 크기 컨트롤 숨김
+- [x] 모달: `max-h-[90vh]`, `p-4 sm:p-6`, 입력 16px (text-base)
+- [x] 터치 타겟: 주요 버튼 44px
+- [x] 마이페이지: 보드 폼 `flex-col` (모바일)
+- [x] layout: viewport, overflow-x-hidden
+- [ ] DropZone: 모바일 안내 문구 (선택)
 
 ---
 

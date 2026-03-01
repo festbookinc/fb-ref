@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { SessionProvider } from "@/components/SessionProvider";
@@ -23,6 +23,13 @@ export const metadata: Metadata = {
   description: "구성원들의 이미지 레퍼런스 업로드·공유·검색",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -31,16 +38,16 @@ export default function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background text-foreground antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} min-h-screen overflow-x-hidden bg-background text-foreground antialiased`}
       >
         <ThemeProvider>
           <SessionProvider>
             <RefreshProvider>
               <SearchProvider>
                 <UploadProvider>
-                  <div className="flex min-h-screen flex-col">
+                  <div className="flex min-h-screen flex-col overflow-x-hidden">
                   <Navbar />
-                  <main className="flex-1">{children}</main>
+                  <main className="flex-1 pb-16 md:pb-0">{children}</main>
                   </div>
                 </UploadProvider>
               </SearchProvider>

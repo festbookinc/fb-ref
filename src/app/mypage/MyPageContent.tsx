@@ -120,13 +120,13 @@ export function MyPageContent() {
 
       {activeTab === "boards" && (
         <section className="mt-4">
-          <form onSubmit={handleCreateBoard} className="mb-4 flex gap-2">
+          <form onSubmit={handleCreateBoard} className="mb-4 flex flex-col gap-2 sm:flex-row">
             <input
-            type="text"
-            value={newBoardName}
-            onChange={(e) => setNewBoardName(e.target.value)}
+              type="text"
+              value={newBoardName}
+              onChange={(e) => setNewBoardName(e.target.value)}
               placeholder="새 보드 이름"
-              className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
             />
             <button
               type="submit"
