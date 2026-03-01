@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
           error: "검색 실패. Supabase SQL Editor에서 supabase/migrations/003_search_images.sql 내용을 실행해 주세요.",
         }, { status: 500 });
       }
-      const ids = (searchResult || []).map((r: { image_id: string }) => r.image_id).filter(Boolean);
+      const ids = (searchResult || []).map((r: { image_id: string }) => r.image_id).filter(Boolean) as string[];
       imageIdsFilter = [...new Set(ids)];
     }
 
