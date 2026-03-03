@@ -276,7 +276,6 @@ export function MyImagesGrid() {
                 sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
                 className="object-cover object-center transition-transform duration-300 ease-out group-hover:scale-105"
                 loading="lazy"
-                loading="lazy"
               />
             </div>
             <div className="flex min-h-[4.5rem] flex-col justify-between gap-1 bg-zinc-200 p-3 dark:bg-zinc-900">
