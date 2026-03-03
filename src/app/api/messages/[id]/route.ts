@@ -43,24 +43,13 @@ export async function GET(
 
     if (error) return NextResponse.json({ error: "메시지 조회 실패" }, { status: 500 });
 
-    // 상대방 정보
+    // 상대방 정보 조회 (메시지 조회와 병렬)
     const partnerId = conv.user_a === myId ? conv.user_b : conv.user_a;
-    const { data: partner } = await supabase
-      .from("profiles")
-      .select("id, name, image")
-      .eq("id", partnerId)
-      .single();
+    const [{ data: partner }] = await Promise.all([
+      supabase.from("profiles").select("id, name, image").eq("id", partnerId).single(),
+    ]);
 
-    // 안읽은 메시지 읽음 처리
-    const unreadIds = (messages || [])
-      .filter((m) => m.sender_id !== myId && !m.read_at)
-      .map((m) => m.id);
-    if (unreadIds.length > 0) {
-      await supabase
-        .from("messages")
-        .update({ read_at: new Date().toISOString() })
-        .in("id", unreadIds);
-    }
+    // 읽음 처리는 PATCH 엔드포인트로 분리 — GET은 조회만 담당
 
     return NextResponse.json({
       messages: messages || [],
@@ -69,6 +58,37 @@ export async function GET(
     });
   } catch (err) {
     console.error("Messages [id] GET error:", err);
+    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
+  }
+}
+
+/** 읽음 처리 — 대화를 열 때 1회 호출 */
+export async function PATCH(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "로그인이 필요합니다" }, { status: 401 });
+    }
+
+    const { id: conversationId } = await params;
+    const supabase = createAdminClient();
+    const myId = await getMyProfileId(supabase, session.user.email);
+    if (!myId) return NextResponse.json({ error: "프로필 없음" }, { status: 400 });
+
+    // 내가 받은 메시지 중 아직 읽지 않은 것만 업데이트
+    await supabase
+      .from("messages")
+      .update({ read_at: new Date().toISOString() })
+      .eq("conversation_id", conversationId)
+      .neq("sender_id", myId)
+      .is("read_at", null);
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("Messages [id] PATCH error:", err);
     return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }
 }

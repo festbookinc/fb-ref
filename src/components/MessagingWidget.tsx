@@ -45,13 +45,24 @@ export function MessagingWidget() {
     }
   }, [conversationId]);
 
+  // 대화를 처음 열 때 읽음 처리 (폴링과 분리)
+  const markAsRead = useCallback(async () => {
+    if (!conversationId) return;
+    try {
+      await fetch(`/api/messages/${conversationId}`, { method: "PATCH" });
+    } catch {
+      // 무시
+    }
+  }, [conversationId]);
+
   useEffect(() => {
     if (!isOpen || !conversationId) return;
     setLoading(true);
     setMessages([]);
     setPartner(null);
     fetchMessages();
-  }, [isOpen, conversationId, fetchMessages]);
+    markAsRead();
+  }, [isOpen, conversationId, fetchMessages, markAsRead]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });

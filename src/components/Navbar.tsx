@@ -40,12 +40,15 @@ export function Navbar() {
   }, []);
 
   // 읽지 않은 메시지 수 폴링 (30초 간격)
+  // session 객체 대신 email 원시값을 의존성으로 사용해 불필요한 재등록 방지
+  const sessionEmail = session?.user?.email;
   useEffect(() => {
-    if (!session) {
+    if (!sessionEmail) {
       setUnreadCount(0);
       return;
     }
     const fetchUnread = async () => {
+      if (document.hidden) return; // 백그라운드 탭에서는 스킵
       try {
         const res = await fetch("/api/messages/unread");
         const data = await res.json();
@@ -56,8 +59,14 @@ export function Navbar() {
     };
     fetchUnread();
     const interval = setInterval(fetchUnread, 30000);
-    return () => clearInterval(interval);
-  }, [session]);
+    // 탭이 다시 포커스될 때 즉시 갱신
+    const handleVisibility = () => { if (!document.hidden) fetchUnread(); };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [sessionEmail]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {

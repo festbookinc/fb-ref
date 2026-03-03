@@ -12,42 +12,23 @@ interface AuthorLinkProps {
   className?: string;
 }
 
-let cachedMyId: string | null | undefined = undefined;
-
-async function getMyProfileId(): Promise<string | null> {
-  if (cachedMyId !== undefined) return cachedMyId ?? null;
-  try {
-    const res = await fetch("/api/profile/me");
-    const data = await res.json();
-    cachedMyId = data.id ?? null;
-  } catch {
-    cachedMyId = null;
-  }
-  return cachedMyId ?? null;
-}
-
 export function AuthorLink({ author, authorId, className }: AuthorLinkProps) {
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(false);
-  const [isOwn, setIsOwn] = useState(false);
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
   const [mounted, setMounted] = useState(false);
   const triggerRef = useRef<HTMLSpanElement>(null);
   const dropdownRef = useRef<HTMLSpanElement>(null);
   const router = useRouter();
   const { data: session } = useSession();
-  const { openChat } = useMessaging();
+  // MessagingContext에서 myProfileId를 가져와 경쟁 조건 없이 1회만 fetch됨
+  const { openChat, myProfileId } = useMessaging();
+
+  const isOwn = !!authorId && myProfileId === authorId;
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  useEffect(() => {
-    if (!session || !authorId) return;
-    getMyProfileId().then((myId) => {
-      setIsOwn(myId === authorId);
-    });
-  }, [session, authorId]);
 
   // 드롭다운 위치 계산
   useEffect(() => {

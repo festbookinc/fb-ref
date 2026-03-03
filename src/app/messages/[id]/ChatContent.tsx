@@ -42,6 +42,11 @@ export function ChatContent({ conversationId }: { conversationId: string }) {
     }
   }, [conversationId]);
 
+  // 페이지 진입 시 읽음 처리 1회 (폴링과 분리)
+  useEffect(() => {
+    fetch(`/api/messages/${conversationId}`, { method: "PATCH" }).catch(() => {});
+  }, [conversationId]);
+
   useEffect(() => {
     fetchMessages();
   }, [fetchMessages]);

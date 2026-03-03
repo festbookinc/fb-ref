@@ -10,92 +10,82 @@ export async function GET(
     const { id } = await params;
     const supabase = createAdminClient();
 
-    const { data: image, error: imgError } = await supabase
-      .from("images")
-      .select("id, title, description, link, image_url, created_at, user_id")
-      .eq("id", id)
-      .single();
+    // [1단계] 이미지 조회 + 세션 병렬
+    const [{ data: image, error: imgError }, session] = await Promise.all([
+      supabase
+        .from("images")
+        .select("id, title, description, link, image_url, created_at, user_id")
+        .eq("id", id)
+        .single(),
+      auth(),
+    ]);
 
     if (imgError || !image) {
       return NextResponse.json({ error: "이미지를 찾을 수 없습니다" }, { status: 404 });
     }
 
-    // 작성자 정보
-    let author = null;
-    let authorEmail: string | null = null;
-    if (image.user_id) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("name, email")
-        .eq("id", image.user_id)
-        .single();
-      author = profile?.name || profile?.email || "알 수 없음";
-      authorEmail = profile?.email ?? null;
-    }
+    // [2단계] 작성자·태그·댓글·좋아요수·현재유저 프로필 병렬
+    const [authorResult, imageTagsResult, commentsResult, likeCountResult, currentUserResult] =
+      await Promise.all([
+        image.user_id
+          ? supabase.from("profiles").select("name, email").eq("id", image.user_id).single()
+          : Promise.resolve({ data: null }),
+        supabase.from("image_tags").select("tag_id").eq("image_id", id),
+        supabase
+          .from("comments")
+          .select("id, content, created_at, user_id")
+          .eq("image_id", id)
+          .order("created_at", { ascending: true }),
+        supabase
+          .from("image_likes")
+          .select("image_id", { count: "exact", head: true })
+          .eq("image_id", id),
+        session?.user?.email
+          ? supabase.from("profiles").select("id").eq("email", session.user.email).single()
+          : Promise.resolve({ data: null }),
+      ]);
 
-    // 태그
-    const { data: imageTags } = await supabase
-      .from("image_tags")
-      .select("tag_id")
-      .eq("image_id", id);
-    const tagIds = (imageTags || []).map((it) => it.tag_id);
-    const { data: tags } = tagIds.length
-      ? await supabase.from("tags").select("name").in("id", tagIds)
-      : { data: [] };
-    const tagNames = (tags || []).map((t) => t.name);
+    const authorProfile = authorResult.data;
+    const author = authorProfile
+      ? authorProfile.name || authorProfile.email || "알 수 없음"
+      : null;
+    const authorEmail = authorProfile?.email ?? null;
 
-    // 댓글
-    const { data: comments } = await supabase
-      .from("comments")
-      .select("id, content, created_at, user_id")
-      .eq("image_id", id)
-      .order("created_at", { ascending: true });
+    const tagIds = (imageTagsResult.data || []).map((it) => it.tag_id);
+    const comments = commentsResult.data || [];
+    const commentUserIds = [...new Set(comments.map((c) => c.user_id).filter(Boolean))];
+    const currentProfile = currentUserResult.data;
 
-    const commentUserIds = [...new Set((comments || []).map((c) => c.user_id).filter(Boolean))];
-    let commentAuthors: Record<string, string> = {};
-    if (commentUserIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, name, email")
-        .in("id", commentUserIds);
-      commentAuthors = (profiles || []).reduce(
-        (acc, p) => {
-          acc[p.id] = p.name || p.email || "알 수 없음";
-          return acc;
-        },
-        {} as Record<string, string>
-      );
-    }
+    // [3단계] 태그명·댓글 작성자·좋아요 여부 병렬
+    const [tagsResult, commentProfilesResult, likedByMeResult] = await Promise.all([
+      tagIds.length
+        ? supabase.from("tags").select("name").in("id", tagIds)
+        : Promise.resolve({ data: [] as { name: string }[] }),
+      commentUserIds.length > 0
+        ? supabase.from("profiles").select("id, name, email").in("id", commentUserIds)
+        : Promise.resolve({ data: [] as { id: string; name: string | null; email: string | null }[] }),
+      currentProfile?.id
+        ? supabase
+            .from("image_likes")
+            .select("image_id")
+            .eq("image_id", id)
+            .eq("user_id", currentProfile.id)
+            .single()
+        : Promise.resolve({ data: null }),
+    ]);
 
-    const commentsWithAuthor = (comments || []).map((c) => ({
+    const tagNames = (tagsResult.data || []).map((t) => t.name);
+    const commentAuthors = (commentProfilesResult.data || []).reduce(
+      (acc, p) => {
+        acc[p.id] = p.name || p.email || "알 수 없음";
+        return acc;
+      },
+      {} as Record<string, string>
+    );
+    const commentsWithAuthor = comments.map((c) => ({
       ...c,
       author: c.user_id ? commentAuthors[c.user_id] : "알 수 없음",
     }));
-
-    // 좋아요 수 및 현재 사용자 좋아요 여부
-    const { count: likeCount } = await supabase
-      .from("image_likes")
-      .select("image_id", { count: "exact", head: true })
-      .eq("image_id", id);
-
-    let likedByMe = false;
-    const session = await auth();
-    if (session?.user?.email) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("email", session.user.email)
-        .single();
-      if (profile?.id) {
-        const { data: like } = await supabase
-          .from("image_likes")
-          .select("image_id")
-          .eq("image_id", id)
-          .eq("user_id", profile.id)
-          .single();
-        likedByMe = !!like;
-      }
-    }
 
     return NextResponse.json({
       ...image,
@@ -105,8 +95,8 @@ export async function GET(
       tags: tagNames,
       comments: commentsWithAuthor,
       isAuthor: session?.user?.email ? session.user.email === authorEmail : false,
-      likeCount: likeCount ?? 0,
-      likedByMe,
+      likeCount: likeCountResult.count ?? 0,
+      likedByMe: !!likedByMeResult.data,
     });
   } catch (err) {
     console.error("Image fetch error:", err);
