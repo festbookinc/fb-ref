@@ -2,28 +2,38 @@ import { auth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET() {
+
+export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "로그인이 필요합니다" }, { status: 401 });
+    const supabase = createAdminClient();
+    const { searchParams } = new URL(request.url);
+    const userParam = searchParams.get("user")?.trim();
+
+    let userId: string | null = null;
+
+    if (userParam) {
+      userId = userParam;
+    } else {
+      const session = await auth();
+      if (!session?.user?.email) {
+        return NextResponse.json({ error: "로그인이 필요합니다" }, { status: 401 });
+      }
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", session.user.email)
+        .single();
+      userId = profile?.id ?? null;
     }
 
-    const supabase = createAdminClient();
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("email", session.user.email)
-      .single();
-    if (!profile?.id) {
+    if (!userId) {
       return NextResponse.json({ boards: [] });
     }
 
     const { data: boards, error } = await supabase
       .from("boards")
       .select("id, name, created_at")
-      .eq("user_id", profile.id)
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
     if (error) {

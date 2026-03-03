@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { TagAutocomplete } from "./TagAutocomplete";
 import { BoardSelectModal } from "./BoardSelectModal";
 import { useUpload } from "@/contexts/UploadContext";
+import { compressImageForUpload } from "@/lib/compressImage";
 
 function fileNameToTitle(name: string): string {
   const lastDot = name.lastIndexOf(".");
@@ -133,7 +134,8 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
           formData.append("description", sharedDesc);
           formData.append("link", sharedLink);
           formData.append("tags", sharedTags);
-          formData.append("image", f);
+          const compressedFile = await compressImageForUpload(f);
+          formData.append("image", compressedFile);
 
           const res = await fetch("/api/images/upload", { method: "POST", body: formData });
           const data = await res.json();
@@ -164,7 +166,8 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
         formData.append("tags", tags.trim());
 
         if (mode === "file" && file) {
-          formData.append("image", file);
+          const compressedFile = await compressImageForUpload(file);
+          formData.append("image", compressedFile);
         } else if (mode === "url" && imageUrl.trim()) {
           formData.append("imageUrl", imageUrl.trim());
         } else {

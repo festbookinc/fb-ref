@@ -12,14 +12,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "로그인이 필요합니다" }, { status: 401 });
-    }
-
     const { id } = await params;
     const supabase = createAdminClient();
-    const profileId = await getProfileId(supabase, session.user.email);
 
     const { data: board, error } = await supabase
       .from("boards")
@@ -29,11 +23,6 @@ export async function GET(
 
     if (error || !board) {
       return NextResponse.json({ error: "보드를 찾을 수 없습니다" }, { status: 404 });
-    }
-
-    const boardUserId = (board as { user_id?: string }).user_id;
-    if (boardUserId !== profileId) {
-      return NextResponse.json({ error: "권한이 없습니다" }, { status: 403 });
     }
 
     const { data: boardImages } = await supabase
@@ -86,8 +75,13 @@ export async function GET(
       .map((id) => imgById.get(id))
       .filter(Boolean);
 
+    const boardUserId = (board as { user_id?: string }).user_id;
     const { user_id: _, ...boardWithoutUserId } = board as { user_id?: string };
-    return NextResponse.json({ ...boardWithoutUserId, images: imagesWithTags });
+    return NextResponse.json({
+      ...boardWithoutUserId,
+      ownerId: boardUserId,
+      images: imagesWithTags,
+    });
   } catch (err) {
     console.error("Board fetch error:", err);
     return NextResponse.json({ error: "서버 오류" }, { status: 500 });

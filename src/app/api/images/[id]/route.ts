@@ -101,6 +101,7 @@ export async function GET(
       ...image,
       author,
       authorEmail,
+      authorId: image.user_id ?? null,
       tags: tagNames,
       comments: commentsWithAuthor,
       isAuthor: session?.user?.email ? session.user.email === authorEmail : false,

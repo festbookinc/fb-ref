@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { TagAutocomplete } from "./TagAutocomplete";
 import { BoardAddModal } from "./BoardAddModal";
 
@@ -21,6 +22,7 @@ interface ImageDetail {
   created_at: string;
   author: string | null;
   authorEmail: string | null;
+  authorId?: string | null;
   tags: string[];
   comments: Comment[];
   isAuthor: boolean;
@@ -275,8 +277,18 @@ export function ImageDetailModal({
                         {detail.title}
                       </h2>
                       {detail.author && (
-                        <p className="mt-0.5 text-[11px] font-normal text-zinc-400 dark:text-zinc-200">
-                          by {detail.author}
+                        <p className="mt-0.5 text-[11px] font-normal">
+                          {detail.authorId ? (
+                            <Link
+                              href={`/profile/${detail.authorId}`}
+                              className="text-zinc-400 transition-colors hover:text-zinc-700 hover:underline dark:text-zinc-200 dark:hover:text-zinc-100"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              by {detail.author}
+                            </Link>
+                          ) : (
+                            <span className="text-zinc-400 dark:text-zinc-200">by {detail.author}</span>
+                          )}
                         </p>
                       )}
                     </div>

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useRefresh } from "@/contexts/RefreshContext";
 import { useSearch } from "@/contexts/SearchContext";
 import { ImageDetailModal } from "./ImageDetailModal";
+import { AuthorLink } from "./AuthorLink";
 
 interface ImageItem {
   id: string;
@@ -14,6 +15,7 @@ interface ImageItem {
   image_url: string;
   created_at: string;
   author: string | null;
+  authorId?: string | null;
   tags: string[];
 }
 
@@ -174,7 +176,9 @@ export function ImageArchiveGrid() {
                   {img.title}
                 </h3>
                 {img.author && (
-                  <p className="text-xs text-zinc-600 dark:text-zinc-200">by {img.author}</p>
+                  <p onClick={(e) => e.stopPropagation()}>
+                    <AuthorLink author={img.author} authorId={img.authorId} />
+                  </p>
                 )}
               </div>
               <div className="mt-auto min-h-[1.5rem] flex flex-nowrap items-end gap-1 overflow-hidden">

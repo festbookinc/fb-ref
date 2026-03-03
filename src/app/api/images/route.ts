@@ -21,8 +21,11 @@ export async function GET(request: NextRequest) {
 
     let imageIdsFilter: string[] | null = null;
     let userIdFilter: string | null = null;
+    const userParam = searchParams.get("user")?.trim();
 
-    if (mine || likes) {
+    if (userParam) {
+      userIdFilter = userParam;
+    } else if (mine || likes) {
       const session = await auth();
       if (!session?.user?.email) {
         return NextResponse.json({ error: "로그인이 필요합니다" }, { status: 401 });
@@ -157,6 +160,7 @@ export async function GET(request: NextRequest) {
     const imagesWithMeta = result.map((img) => ({
       ...img,
       author: img.user_id ? profilesMap[img.user_id]?.name || profilesMap[img.user_id]?.email || "알 수 없음" : null,
+      authorId: img.user_id ?? null,
       tags: tagsMap[img.id] || [],
     }));
 
