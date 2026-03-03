@@ -176,11 +176,16 @@ export async function GET(request: NextRequest) {
       commentCount: commentCountMap[img.id] ?? 0,
     }));
 
-    return NextResponse.json({
-      images: imagesWithMeta,
-      total: count ?? 0,
-      hasMore: (count ?? 0) > offset + limit,
-    });
+    // 사용자별 필터(mine, likes, user) 없는 공개 목록은 CDN에서 30초 캐시
+    const isPersonalized = mine || likes || !!searchParams.get("user");
+    const cacheHeader = isPersonalized
+      ? "private, no-store"
+      : "public, s-maxage=30, stale-while-revalidate=60";
+
+    return NextResponse.json(
+      { images: imagesWithMeta, total: count ?? 0, hasMore: (count ?? 0) > offset + limit },
+      { headers: { "Cache-Control": cacheHeader } }
+    );
   } catch (err) {
     console.error("Images fetch error:", err);
     return NextResponse.json({ error: "서버 오류" }, { status: 500 });

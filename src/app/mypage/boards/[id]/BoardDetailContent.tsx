@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { ImageDetailModal } from "@/components/ImageDetailModal";
 
 interface ImageItem {
@@ -190,10 +191,13 @@ export function BoardDetailContent({ boardId }: { boardId: string }) {
                     )}
                   </div>
                 )}
-                <img
+                <Image
                   src={img.image_url}
                   alt={img.title}
-                  className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-105"
+                  fill
+                  sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                  className="object-cover transition-transform duration-300 ease-out group-hover:scale-105"
+                  loading="lazy"
                 />
               </div>
               <p className="truncate p-2 text-xs text-zinc-700 dark:text-zinc-100">

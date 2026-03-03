@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 import { TagAutocomplete } from "./TagAutocomplete";
 import { BoardAddModal } from "./BoardAddModal";
 import { AuthorLink } from "./AuthorLink";
@@ -252,18 +253,26 @@ export function ImageDetailModal({
                       rel="noopener noreferrer"
                       className="block"
                     >
-                      <img
+                      <Image
                         src={detail.image_url}
                         alt={detail.title}
+                        width={0}
+                        height={0}
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                        style={{ width: "auto", height: "auto" }}
                         className={`max-w-full object-contain transition-opacity hover:opacity-90 ${
                           editMode ? "max-h-[15vh] md:max-h-[70vh]" : "max-h-[50vh] md:max-h-[70vh]"
                         }`}
                       />
                     </a>
                   ) : (
-                    <img
+                    <Image
                       src={detail.image_url}
                       alt={detail.title}
+                      width={0}
+                      height={0}
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      style={{ width: "auto", height: "auto" }}
                       className={`max-w-full object-contain ${
                         editMode ? "max-h-[15vh] md:max-h-[70vh]" : "max-h-[50vh] md:max-h-[70vh]"
                       }`}

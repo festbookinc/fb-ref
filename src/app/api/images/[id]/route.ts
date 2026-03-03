@@ -87,17 +87,21 @@ export async function GET(
       author: c.user_id ? commentAuthors[c.user_id] : "알 수 없음",
     }));
 
-    return NextResponse.json({
-      ...image,
-      author,
-      authorEmail,
-      authorId: image.user_id ?? null,
-      tags: tagNames,
-      comments: commentsWithAuthor,
-      isAuthor: session?.user?.email ? session.user.email === authorEmail : false,
-      likeCount: likeCountResult.count ?? 0,
-      likedByMe: !!likedByMeResult.data,
-    });
+    return NextResponse.json(
+      {
+        ...image,
+        author,
+        authorEmail,
+        authorId: image.user_id ?? null,
+        tags: tagNames,
+        comments: commentsWithAuthor,
+        isAuthor: session?.user?.email ? session.user.email === authorEmail : false,
+        likeCount: likeCountResult.count ?? 0,
+        likedByMe: !!likedByMeResult.data,
+      },
+      // isAuthor / likedByMe가 포함되므로 개인화 응답 — 브라우저는 30초 재사용, CDN 캐시 없음
+      { headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=30" } }
+    );
   } catch (err) {
     console.error("Image fetch error:", err);
     return NextResponse.json({ error: "서버 오류" }, { status: 500 });
@@ -141,20 +145,37 @@ export async function PATCH(
     if (error) return NextResponse.json({ error: "수정 실패" }, { status: 500 });
 
     if (Array.isArray(tagsToUpdate)) {
+      const trimmedNames = (tagsToUpdate as unknown[])
+        .map((n) => String(n).trim().toLowerCase())
+        .filter(Boolean);
+
+      // 기존 태그 연결 삭제
       await supabase.from("image_tags").delete().eq("image_id", id);
-      for (const name of tagsToUpdate) {
-        const trimmed = String(name).trim().toLowerCase();
-        if (!trimmed) continue;
-        const { data: tag } = await supabase
+
+      if (trimmedNames.length > 0) {
+        // 태그 배치 upsert (N+1 제거)
+        const { data: upsertedTags } = await supabase
           .from("tags")
-          .upsert({ name: trimmed }, { onConflict: "name" })
+          .upsert(trimmedNames.map((name) => ({ name })), { onConflict: "name" })
+          .select("id");
+
+        const { data: existingTags } = await supabase
+          .from("tags")
           .select("id")
-          .single();
-        if (tag?.id) {
-          await supabase.from("image_tags").upsert(
-            { image_id: id, tag_id: tag.id },
-            { onConflict: "image_id,tag_id" }
-          );
+          .in("name", trimmedNames);
+
+        const tagIds = [...new Set([
+          ...(upsertedTags || []).map((t) => t.id),
+          ...(existingTags || []).map((t) => t.id),
+        ])].filter(Boolean);
+
+        if (tagIds.length > 0) {
+          await supabase
+            .from("image_tags")
+            .upsert(
+              tagIds.map((tag_id) => ({ image_id: id, tag_id })),
+              { onConflict: "image_id,tag_id" }
+            );
         }
       }
     }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useMessaging } from "@/contexts/MessagingContext";
 
 interface Message {
@@ -114,7 +115,7 @@ export function MessagingWidget() {
           {partner ? (
             <>
               {partner.image ? (
-                <img src={partner.image} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" />
+                <Image src={partner.image} alt="" width={28} height={28} className="h-7 w-7 shrink-0 rounded-full object-cover" />
               ) : (
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
                   {partner.name.charAt(0)}

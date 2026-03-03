@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface Message {
   id: string;
@@ -106,7 +107,7 @@ export function ChatContent({ conversationId }: { conversationId: string }) {
       {partner && (
         <div className="flex items-center gap-3 border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
           {partner.image ? (
-            <img src={partner.image} alt="" className="h-9 w-9 rounded-full object-cover" />
+            <Image src={partner.image} alt="" width={36} height={36} className="h-9 w-9 rounded-full object-cover" />
           ) : (
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-200 text-sm font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
               {partner.name.charAt(0)}

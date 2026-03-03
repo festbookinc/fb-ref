@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
@@ -48,9 +50,11 @@ export function MessagesContent() {
             className="flex items-center gap-4 py-4 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-lg px-2"
           >
             {conv.partner.image ? (
-              <img
+              <Image
                 src={conv.partner.image}
                 alt=""
+                width={48}
+                height={48}
                 className="h-12 w-12 shrink-0 rounded-full object-cover"
               />
             ) : (

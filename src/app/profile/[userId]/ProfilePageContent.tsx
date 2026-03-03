@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ImageDetailModal } from "@/components/ImageDetailModal";
 
 interface BoardItem {
@@ -124,9 +125,11 @@ export function ProfilePageContent({ userId }: { userId: string }) {
       <div className="mb-6 rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
         <div className="flex items-center gap-4">
           {profile.image && (
-            <img
+            <Image
               src={profile.image}
               alt=""
+              width={64}
+              height={64}
               className="h-16 w-16 rounded-full object-cover"
             />
           )}
@@ -167,9 +170,9 @@ export function ProfilePageContent({ userId }: { userId: string }) {
                       board.thumbnails.map((url, i) => (
                         <div
                           key={i}
-                          className="flex-1 overflow-hidden border-r last:border-r-0 border-zinc-200 dark:border-zinc-700"
+                          className="relative flex-1 overflow-hidden border-r last:border-r-0 border-zinc-200 dark:border-zinc-700"
                         >
-                          <img src={url} alt="" className="h-full w-full object-cover" />
+                          <Image src={url} alt="" fill sizes="15vw" className="object-cover" />
                         </div>
                       ))
                     ) : (
@@ -219,11 +222,13 @@ export function ProfilePageContent({ userId }: { userId: string }) {
               }}
               className="group overflow-hidden rounded-lg border border-zinc-200 bg-white text-left shadow-sm transition-all duration-200 hover:border-zinc-300 hover:shadow-md active:scale-[0.99] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
             >
-              <div className="aspect-[5/7] overflow-hidden bg-zinc-100 dark:bg-zinc-800">
-                <img
+              <div className="relative aspect-[5/7] overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                <Image
                   src={img.image_url}
                   alt={img.title}
-                  className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-105"
+                  fill
+                  sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                  className="object-cover transition-transform duration-300 ease-out group-hover:scale-105"
                   loading="lazy"
                 />
               </div>

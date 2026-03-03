@@ -37,7 +37,11 @@ export async function GET() {
       .neq("sender_id", myId)
       .is("read_at", null);
 
-    return NextResponse.json({ unread: count ?? 0 });
+    // 폴링 주기(30s)보다 짧게 캐시 → 동일 탭에서 중복 요청 방지
+    return NextResponse.json(
+      { unread: count ?? 0 },
+      { headers: { "Cache-Control": "private, max-age=25, stale-while-revalidate=5" } }
+    );
   } catch (err) {
     console.error("Unread count error:", err);
     return NextResponse.json({ unread: 0 });

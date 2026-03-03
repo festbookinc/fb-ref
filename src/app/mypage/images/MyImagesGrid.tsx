@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { ImageDetailModal } from "@/components/ImageDetailModal";
 import { BoardAddBulkModal } from "@/components/BoardAddBulkModal";
 import { AuthorLink } from "@/components/AuthorLink";
@@ -268,10 +269,13 @@ export function MyImagesGrid() {
                   )}
                 </div>
               )}
-              <img
+              <Image
                 src={img.image_url}
                 alt={img.title}
-                className="h-full w-full object-cover object-center transition-transform duration-300 ease-out group-hover:scale-105"
+                fill
+                sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                className="object-cover object-center transition-transform duration-300 ease-out group-hover:scale-105"
+                loading="lazy"
                 loading="lazy"
               />
             </div>

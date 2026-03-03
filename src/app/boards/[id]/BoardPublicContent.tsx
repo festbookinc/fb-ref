@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ImageDetailModal } from "@/components/ImageDetailModal";
 
 interface ImageItem {
@@ -78,11 +79,14 @@ export function BoardPublicContent({ boardId }: { boardId: string }) {
               }}
               className="group overflow-hidden rounded-lg border border-zinc-200 bg-white text-left shadow-sm transition-all duration-200 hover:border-zinc-300 hover:shadow-md active:scale-[0.99] dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-600"
             >
-              <div className="aspect-[5/7] overflow-hidden bg-zinc-100 dark:bg-zinc-800">
-                <img
+              <div className="relative aspect-[5/7] overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                <Image
                   src={img.image_url}
                   alt={img.title}
-                  className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-105"
+                  fill
+                  sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                  className="object-cover transition-transform duration-300 ease-out group-hover:scale-105"
+                  loading="lazy"
                 />
               </div>
               <p className="truncate p-2 text-xs text-zinc-700 dark:text-zinc-100">

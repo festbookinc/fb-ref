@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { MyImagesGrid } from "./images/MyImagesGrid";
 import { MyLikesGrid } from "./images/MyLikesGrid";
 
@@ -166,9 +167,9 @@ export function MyPageContent() {
                         board.thumbnails.map((url, i) => (
                           <div
                             key={i}
-                            className="flex-1 overflow-hidden border-r last:border-r-0 border-zinc-200 dark:border-zinc-700"
+                            className="relative flex-1 overflow-hidden border-r last:border-r-0 border-zinc-200 dark:border-zinc-700"
                           >
-                            <img src={url} alt="" className="h-full w-full object-cover" />
+                            <Image src={url} alt="" fill sizes="15vw" className="object-cover" />
                           </div>
                         ))
                       ) : (
@@ -210,9 +211,9 @@ export function MyPageContent() {
                         board.thumbnails.map((url, i) => (
                           <div
                             key={i}
-                            className="flex-1 overflow-hidden border-r last:border-r-0 border-zinc-200 dark:border-zinc-700"
+                            className="relative flex-1 overflow-hidden border-r last:border-r-0 border-zinc-200 dark:border-zinc-700"
                           >
-                            <img src={url} alt="" className="h-full w-full object-cover" />
+                            <Image src={url} alt="" fill sizes="15vw" className="object-cover" />
                           </div>
                         ))
                       ) : (

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { useRefresh } from "@/contexts/RefreshContext";
 import { useSearch } from "@/contexts/SearchContext";
 import { ImageDetailModal } from "./ImageDetailModal";
@@ -164,10 +165,12 @@ export function ImageArchiveGrid() {
             className="group overflow-hidden rounded-lg border border-zinc-200 bg-white text-left shadow-sm transition-all duration-200 hover:border-zinc-300 hover:shadow-md active:scale-[0.99] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
           >
             <div className="relative aspect-[5/7] overflow-hidden bg-zinc-100 dark:bg-zinc-800">
-              <img
+              <Image
                 src={img.image_url}
                 alt={img.title}
-                className="h-full w-full object-cover object-center transition-transform duration-300 ease-out group-hover:scale-105"
+                fill
+                sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                className="object-cover object-center transition-transform duration-300 ease-out group-hover:scale-105"
                 loading="lazy"
               />
             </div>

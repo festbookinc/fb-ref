@@ -121,26 +121,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "이미지 저장 실패" }, { status: 500 });
     }
 
-    // 태그 처리
+    // 태그 처리 — 배치 upsert (N+1 제거)
     const tagNames = tagsInput
       .split(/[,，\s]+/)
       .map((t) => t.trim().toLowerCase())
       .filter(Boolean);
 
     if (tagNames.length > 0) {
-      for (const name of tagNames) {
-        const { data: tag } = await supabase
-          .from("tags")
-          .upsert({ name }, { onConflict: "name" })
-          .select("id")
-          .single();
+      // 1) 태그 배치 upsert → id 목록 획득
+      const { data: upsertedTags } = await supabase
+        .from("tags")
+        .upsert(tagNames.map((name) => ({ name })), { onConflict: "name" })
+        .select("id");
 
-        if (tag?.id) {
-          await supabase.from("image_tags").upsert(
-            { image_id: image.id, tag_id: tag.id },
+      // upsert가 기존 행을 반환하지 않는 경우 select로 보완
+      const { data: existingTags } = await supabase
+        .from("tags")
+        .select("id")
+        .in("name", tagNames);
+
+      const tagIds = [...new Set([
+        ...(upsertedTags || []).map((t) => t.id),
+        ...(existingTags || []).map((t) => t.id),
+      ])].filter(Boolean);
+
+      // 2) image_tags 배치 upsert
+      if (tagIds.length > 0) {
+        await supabase
+          .from("image_tags")
+          .upsert(
+            tagIds.map((tag_id) => ({ image_id: image.id, tag_id })),
             { onConflict: "image_id,tag_id" }
           );
-        }
       }
     }
 

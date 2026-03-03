@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import Image from "next/image";
 import { MyPageContent } from "./MyPageContent";
 
 export default async function MyPage() {
@@ -14,9 +15,11 @@ export default async function MyPage() {
       <div className="mb-4 rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
         <div className="flex items-center gap-4">
           {session.user.image && (
-            <img
+            <Image
               src={session.user.image}
               alt=""
+              width={64}
+              height={64}
               className="h-16 w-16 rounded-full"
             />
           )}
