@@ -120,53 +120,49 @@ export async function GET(request: NextRequest) {
       result = [...result].sort(() => Math.random() - 0.5);
     }
 
-    // 작성자 정보 조회 (user_id로 profiles 조인)
-    const userIds = [...new Set((result as { user_id?: string }[]).map((i) => i.user_id).filter(Boolean))];
-    let profilesMap: Record<string, { name: string | null; email: string }> = {};
-    if (userIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, name, email")
-        .in("id", userIds);
-      profilesMap = (profiles || []).reduce(
-        (acc, p) => {
-          acc[p.id] = { name: p.name, email: p.email };
-          return acc;
-        },
-        {} as Record<string, { name: string | null; email: string }>
-      );
-    }
-
-    // 태그 조회
+    // ── 작성자·태그·댓글수 병렬 조회 ──────────────────────────────
     const imageIds = result.map((i) => i.id);
-    let tagsMap: Record<string, string[]> = {};
-    let commentCountMap: Record<string, number> = {};
-    if (imageIds.length > 0) {
-      const { data: imageTags } = await supabase
-        .from("image_tags")
-        .select("image_id, tag_id")
-        .in("image_id", imageIds);
-      const tagIds = [...new Set((imageTags || []).map((it) => it.tag_id))];
-      const { data: tags } = await supabase.from("tags").select("id, name").in("id", tagIds);
-      const tagIdToName = (tags || []).reduce((acc, t) => {
-        acc[t.id] = t.name;
-        return acc;
-      }, {} as Record<string, string>);
-      for (const it of imageTags || []) {
-        if (!tagsMap[it.image_id]) tagsMap[it.image_id] = [];
-        if (tagIdToName[it.tag_id]) tagsMap[it.image_id].push(tagIdToName[it.tag_id]);
-      }
+    const userIds = [...new Set((result as { user_id?: string }[]).map((i) => i.user_id).filter(Boolean))] as string[];
 
-      // 댓글 수 조회
-      const { data: commentRows } = await supabase
-        .from("comments")
-        .select("image_id")
-        .in("image_id", imageIds);
-      commentCountMap = (commentRows || []).reduce((acc, row) => {
-        acc[row.image_id] = (acc[row.image_id] ?? 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+    const [profilesResult, imageTagsResult, commentRowsResult] = await Promise.all([
+      // 작성자 profiles
+      userIds.length > 0
+        ? supabase.from("profiles").select("id, name, email").in("id", userIds)
+        : Promise.resolve({ data: [] as { id: string; name: string | null; email: string }[] }),
+      // 이미지-태그 연결
+      imageIds.length > 0
+        ? supabase.from("image_tags").select("image_id, tag_id").in("image_id", imageIds)
+        : Promise.resolve({ data: [] as { image_id: string; tag_id: string }[] }),
+      // 댓글 수 (image_id 컬럼만 가져와 JS에서 집계)
+      imageIds.length > 0
+        ? supabase.from("comments").select("image_id").in("image_id", imageIds)
+        : Promise.resolve({ data: [] as { image_id: string }[] }),
+    ]);
+
+    const profilesMap = (profilesResult.data || []).reduce(
+      (acc, p) => { acc[p.id] = { name: p.name, email: p.email }; return acc; },
+      {} as Record<string, { name: string | null; email: string }>
+    );
+
+    // 태그 이름 resolve (image_tags → tags 추가 조회는 한 번만)
+    const tagIds = [...new Set((imageTagsResult.data || []).map((it) => it.tag_id))];
+    const { data: tagRows } = tagIds.length > 0
+      ? await supabase.from("tags").select("id, name").in("id", tagIds)
+      : { data: [] as { id: string; name: string }[] };
+    const tagIdToName = (tagRows || []).reduce(
+      (acc, t) => { acc[t.id] = t.name; return acc; },
+      {} as Record<string, string>
+    );
+    const tagsMap: Record<string, string[]> = {};
+    for (const it of imageTagsResult.data || []) {
+      if (!tagsMap[it.image_id]) tagsMap[it.image_id] = [];
+      if (tagIdToName[it.tag_id]) tagsMap[it.image_id].push(tagIdToName[it.tag_id]);
     }
+
+    const commentCountMap = (commentRowsResult.data || []).reduce(
+      (acc, row) => { acc[row.image_id] = (acc[row.image_id] ?? 0) + 1; return acc; },
+      {} as Record<string, number>
+    );
 
     const imagesWithMeta = result.map((img) => ({
       ...img,

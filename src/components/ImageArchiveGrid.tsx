@@ -21,11 +21,17 @@ interface ImageItem {
   commentCount?: number;
 }
 
-export function ImageArchiveGrid() {
-  const [images, setImages] = useState<ImageItem[]>([]);
+interface ImageArchiveGridProps {
+  initialImages?: ImageItem[];
+  initialHasMore?: boolean;
+}
+
+export function ImageArchiveGrid({ initialImages, initialHasMore }: ImageArchiveGridProps = {}) {
+  const [images, setImages] = useState<ImageItem[]>(initialImages ?? []);
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(initialHasMore ?? true);
+  // 서버에서 초기 데이터가 제공되면 로딩 상태 없이 바로 표시
+  const [loading, setLoading] = useState(!initialImages?.length);
   const [sort, setSort] = useState<"latest" | "random">("latest");
   const [cardSize, setCardSize] = useState(280);
   const [isMobile, setIsMobile] = useState(false);
@@ -75,10 +81,14 @@ export function ImageArchiveGrid() {
     [sort, debouncedQuery, selectedTags]
   );
 
+  // 검색/정렬/태그가 바뀌면 다시 조회. 초기 렌더(기본값)에선 서버 pre-fetch 데이터를 그대로 사용.
+  const isDefaultFetch = !debouncedQuery && selectedTags.length === 0 && sort === "latest";
+  const hasInitialData = !!initialImages?.length;
   useEffect(() => {
+    if (isDefaultFetch && hasInitialData && page === 1) return; // 서버 데이터 재사용
     setPage(1);
     fetchImages(1, false);
-  }, [fetchImages]);
+  }, [fetchImages]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     registerRefresh?.(() => fetchImages(1, false));

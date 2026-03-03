@@ -26,41 +26,54 @@ export async function GET() {
       .order("last_message_at", { ascending: false });
 
     if (error) return NextResponse.json({ error: "조회 실패" }, { status: 500 });
+    if (!convs?.length) return NextResponse.json({ conversations: [] });
 
-    const partnerIds = (convs || []).map((c) => (c.user_a === myId ? c.user_b : c.user_a));
-    const uniqueIds = [...new Set(partnerIds)];
+    const convIds = convs.map((c) => c.id);
+    const partnerIds = [...new Set(convs.map((c) => (c.user_a === myId ? c.user_b : c.user_a)))];
 
-    const { data: profiles } = uniqueIds.length
-      ? await supabase.from("profiles").select("id, name, image").in("id", uniqueIds)
-      : { data: [] };
-    const profileMap = (profiles || []).reduce(
+    // 파트너 프로필 + 대화 통계(최신 메시지·unread) 병렬 조회
+    const [profilesResult, statsResult] = await Promise.all([
+      supabase.from("profiles").select("id, name, image").in("id", partnerIds),
+      // RPC: 007_rpc_conversation_stats.sql 실행 필요
+      supabase.rpc("get_conversation_stats", { p_conv_ids: convIds, p_my_id: myId }),
+    ]);
+
+    const profileMap = (profilesResult.data || []).reduce(
       (acc, p) => { acc[p.id] = p; return acc; },
       {} as Record<string, { id: string; name: string | null; image: string | null }>
     );
 
-    // 대화별 최근 메시지 + 안읽은 수 조회
-    const convIds = (convs || []).map((c) => c.id);
-    const { data: recentMsgs } = convIds.length
-      ? await supabase
-          .from("messages")
-          .select("conversation_id, content, created_at, sender_id, read_at")
-          .in("conversation_id", convIds)
-          .order("created_at", { ascending: false })
-      : { data: [] };
+    // RPC 실패 시 폴백 (무제한 로드 → 전체 메시지 JS 집계)
+    let lastMsgMap: Record<string, { content: string; created_at: string }> = {};
+    let unreadMap: Record<string, number> = {};
 
-    // 대화별 최신 메시지 + 안읽은 수
-    const lastMsgMap: Record<string, { content: string; created_at: string }> = {};
-    const unreadMap: Record<string, number> = {};
-    for (const msg of recentMsgs || []) {
-      if (!lastMsgMap[msg.conversation_id]) {
-        lastMsgMap[msg.conversation_id] = { content: msg.content, created_at: msg.created_at };
+    if (statsResult.error) {
+      const { data: recentMsgs } = await supabase
+        .from("messages")
+        .select("conversation_id, content, created_at, sender_id, read_at")
+        .in("conversation_id", convIds)
+        .order("created_at", { ascending: false })
+        .limit(convIds.length * 20); // 대화당 최대 20개로 제한
+      for (const msg of recentMsgs || []) {
+        if (!lastMsgMap[msg.conversation_id]) {
+          lastMsgMap[msg.conversation_id] = { content: msg.content, created_at: msg.created_at };
+        }
+        if (msg.sender_id !== myId && !msg.read_at) {
+          unreadMap[msg.conversation_id] = (unreadMap[msg.conversation_id] ?? 0) + 1;
+        }
       }
-      if (msg.sender_id !== myId && !msg.read_at) {
-        unreadMap[msg.conversation_id] = (unreadMap[msg.conversation_id] ?? 0) + 1;
+    } else {
+      type StatRow = { conversation_id: string; last_content: string; last_created_at: string; unread_count: number };
+      for (const row of (statsResult.data as StatRow[]) || []) {
+        lastMsgMap[row.conversation_id] = {
+          content: row.last_content,
+          created_at: row.last_created_at,
+        };
+        unreadMap[row.conversation_id] = Number(row.unread_count ?? 0);
       }
     }
 
-    const conversations = (convs || []).map((c) => {
+    const conversations = convs.map((c) => {
       const partnerId = c.user_a === myId ? c.user_b : c.user_a;
       const partner = profileMap[partnerId];
       return {
