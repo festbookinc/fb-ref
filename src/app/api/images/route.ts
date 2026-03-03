@@ -140,6 +140,7 @@ export async function GET(request: NextRequest) {
     // 태그 조회
     const imageIds = result.map((i) => i.id);
     let tagsMap: Record<string, string[]> = {};
+    let commentCountMap: Record<string, number> = {};
     if (imageIds.length > 0) {
       const { data: imageTags } = await supabase
         .from("image_tags")
@@ -155,6 +156,16 @@ export async function GET(request: NextRequest) {
         if (!tagsMap[it.image_id]) tagsMap[it.image_id] = [];
         if (tagIdToName[it.tag_id]) tagsMap[it.image_id].push(tagIdToName[it.tag_id]);
       }
+
+      // 댓글 수 조회
+      const { data: commentRows } = await supabase
+        .from("comments")
+        .select("image_id")
+        .in("image_id", imageIds);
+      commentCountMap = (commentRows || []).reduce((acc, row) => {
+        acc[row.image_id] = (acc[row.image_id] ?? 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
     }
 
     const imagesWithMeta = result.map((img) => ({
@@ -162,6 +173,7 @@ export async function GET(request: NextRequest) {
       author: img.user_id ? profilesMap[img.user_id]?.name || profilesMap[img.user_id]?.email || "알 수 없음" : null,
       authorId: img.user_id ?? null,
       tags: tagsMap[img.id] || [],
+      commentCount: commentCountMap[img.id] ?? 0,
     }));
 
     return NextResponse.json({

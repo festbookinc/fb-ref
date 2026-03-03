@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import Link from "next/link";
 import { TagAutocomplete } from "./TagAutocomplete";
 import { BoardAddModal } from "./BoardAddModal";
+import { AuthorLink } from "./AuthorLink";
 
 interface Comment {
   id: string;
@@ -278,17 +278,7 @@ export function ImageDetailModal({
                       </h2>
                       {detail.author && (
                         <p className="mt-0.5 text-[11px] font-normal">
-                          {detail.authorId ? (
-                            <Link
-                              href={`/profile/${detail.authorId}`}
-                              className="text-zinc-400 transition-colors hover:text-zinc-700 hover:underline dark:text-zinc-200 dark:hover:text-zinc-100"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              by {detail.author}
-                            </Link>
-                          ) : (
-                            <span className="text-zinc-400 dark:text-zinc-200">by {detail.author}</span>
-                          )}
+                          <AuthorLink author={detail.author} authorId={detail.authorId} />
                         </p>
                       )}
                     </div>

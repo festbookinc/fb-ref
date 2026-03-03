@@ -5,7 +5,9 @@ import { SessionProvider } from "@/components/SessionProvider";
 import { RefreshProvider } from "@/contexts/RefreshContext";
 import { SearchProvider } from "@/contexts/SearchContext";
 import { UploadProvider } from "@/contexts/UploadContext";
+import { MessagingProvider } from "@/contexts/MessagingContext";
 import { Navbar } from "@/components/Navbar";
+import { MessagingWidget } from "@/components/MessagingWidget";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -45,10 +47,13 @@ export default function RootLayout({
             <RefreshProvider>
               <SearchProvider>
                 <UploadProvider>
-                  <div className="flex min-h-screen flex-col overflow-x-hidden">
-                  <Navbar />
-                  <main className="flex-1 pb-16 md:pb-0">{children}</main>
-                  </div>
+                  <MessagingProvider>
+                    <div className="flex min-h-screen flex-col overflow-x-hidden">
+                      <Navbar />
+                      <main className="flex-1 pb-16 md:pb-0">{children}</main>
+                      <MessagingWidget />
+                    </div>
+                  </MessagingProvider>
                 </UploadProvider>
               </SearchProvider>
             </RefreshProvider>

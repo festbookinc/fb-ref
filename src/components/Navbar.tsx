@@ -23,6 +23,7 @@ export function Navbar() {
   const [tagModalOpen, setTagModalOpen] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [mypageOpen, setMypageOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const mypageRef = useRef<HTMLDivElement>(null);
   const mypageRefMobile = useRef<HTMLDivElement>(null);
   const { theme, setTheme } = useTheme();
@@ -37,6 +38,26 @@ export function Navbar() {
     window.addEventListener("open-upload-modal", handler);
     return () => window.removeEventListener("open-upload-modal", handler);
   }, []);
+
+  // 읽지 않은 메시지 수 폴링 (30초 간격)
+  useEffect(() => {
+    if (!session) {
+      setUnreadCount(0);
+      return;
+    }
+    const fetchUnread = async () => {
+      try {
+        const res = await fetch("/api/messages/unread");
+        const data = await res.json();
+        setUnreadCount(data.unread ?? 0);
+      } catch {
+        // 무시
+      }
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000);
+    return () => clearInterval(interval);
+  }, [session]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -119,6 +140,22 @@ export function Navbar() {
                   <MoonIcon className="h-5 w-5" />
                 )}
               </button>
+            )}
+
+            {/* 메시지 아이콘 (로그인 시) */}
+            {session && (
+              <Link
+                href="/messages"
+                className="relative flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-lg p-2 text-zinc-600 transition-all duration-200 hover:bg-zinc-200 hover:text-zinc-800 hover:scale-105 active:scale-95 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 sm:min-h-0 sm:min-w-0"
+                aria-label="메시지"
+              >
+                <MessageIcon className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute right-0.5 top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </Link>
             )}
 
             {/* 로그인 / 마이페이지 드롭다운 */}
@@ -206,6 +243,20 @@ export function Navbar() {
         >
           +
         </button>
+        {session && (
+          <Link
+            href="/messages"
+            className="relative flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center text-zinc-600 transition-colors hover:text-zinc-800 active:scale-95 dark:text-zinc-200 dark:hover:text-zinc-100"
+            aria-label="메시지"
+          >
+            <MessageIcon className="h-6 w-6" />
+            {unreadCount > 0 && (
+              <span className="absolute right-1 top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
+          </Link>
+        )}
         {status === "loading" ? (
           <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-zinc-200 dark:bg-zinc-700" />
         ) : session ? (
@@ -407,6 +458,14 @@ function ProfileIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+    </svg>
+  );
+}
+
+function MessageIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.77 9.77 0 01-4-.83L3 20l1.04-3.63A7.6 7.6 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
     </svg>
   );
 }

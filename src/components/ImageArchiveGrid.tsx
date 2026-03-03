@@ -17,6 +17,7 @@ interface ImageItem {
   author: string | null;
   authorId?: string | null;
   tags: string[];
+  commentCount?: number;
 }
 
 export function ImageArchiveGrid() {
@@ -181,22 +182,26 @@ export function ImageArchiveGrid() {
                   </p>
                 )}
               </div>
-              <div className="mt-auto min-h-[1.5rem] flex flex-nowrap items-end gap-1 overflow-hidden">
-                {img.tags.length > 0 ? (
-                  <>
-                    {img.tags.slice(0, 3).map((tag) => (
-                      <span
-                        key={tag}
-                        className="shrink-0 rounded bg-zinc-300 px-2 py-0.5 text-xs text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                    {img.tags.length > 3 && (
-                      <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-200">...</span>
-                    )}
-                  </>
-                ) : null}
+              <div className="mt-auto flex min-h-[1.5rem] items-end justify-between gap-1">
+                <div className="flex min-w-0 flex-nowrap items-end gap-1 overflow-hidden">
+                  {img.tags.slice(0, 3).map((tag) => (
+                    <span
+                      key={tag}
+                      className="shrink-0 rounded bg-zinc-300 px-2 py-0.5 text-xs text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                  {img.tags.length > 3 && (
+                    <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-200">...</span>
+                  )}
+                </div>
+                {(img.commentCount ?? 0) > 0 && (
+                  <span className="flex shrink-0 items-center gap-0.5 text-xs text-zinc-400 dark:text-zinc-500">
+                    <CommentIcon className="h-3 w-3" />
+                    {img.commentCount}
+                  </span>
+                )}
               </div>
             </div>
           </button>
@@ -221,5 +226,13 @@ export function ImageArchiveGrid() {
         onUpdate={() => fetchImages(1, false)}
       />
     </div>
+  );
+}
+
+function CommentIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.77 9.77 0 01-4-.83L3 20l1.04-3.63A7.6 7.6 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+    </svg>
   );
 }
