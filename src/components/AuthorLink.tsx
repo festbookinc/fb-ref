@@ -15,7 +15,7 @@ interface AuthorLinkProps {
 let cachedMyId: string | null | undefined = undefined;
 
 async function getMyProfileId(): Promise<string | null> {
-  if (cachedMyId !== undefined) return cachedMyId;
+  if (cachedMyId !== undefined) return cachedMyId ?? null;
   try {
     const res = await fetch("/api/profile/me");
     const data = await res.json();
@@ -23,7 +23,7 @@ async function getMyProfileId(): Promise<string | null> {
   } catch {
     cachedMyId = null;
   }
-  return cachedMyId;
+  return cachedMyId ?? null;
 }
 
 export function AuthorLink({ author, authorId, className }: AuthorLinkProps) {
