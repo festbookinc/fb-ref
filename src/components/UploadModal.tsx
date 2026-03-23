@@ -19,7 +19,7 @@ interface UploadModalProps {
 
 export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
   const { pendingFiles, clearPendingFiles } = useUpload() ?? {};
-  const [mode, setMode] = useState<"file" | "url">("file");
+  const [mode, setMode] = useState<"file" | "url" | "multi">("file");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [link, setLink] = useState("");
@@ -30,7 +30,9 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [openFilePicker, setOpenFilePicker] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const multiFileInputRef = useRef<HTMLInputElement>(null);
   const [selectedBoardIds, setSelectedBoardIds] = useState<Set<string>>(new Set());
   const [newBoardName, setNewBoardName] = useState("");
   const [boardSelectOpen, setBoardSelectOpen] = useState(false);
@@ -46,14 +48,30 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
 
   useEffect(() => {
     if (isOpen && pendingFiles && pendingFiles.length > 0) {
-      setMode("file");
+      setMode(pendingFiles.length > 1 ? "multi" : "file");
       setFiles(
-        pendingFiles.map((f) => ({ file: f, title: fileNameToTitle(f.name) }))
+        pendingFiles.length > 1
+          ? pendingFiles.map((f) => ({ file: f, title: fileNameToTitle(f.name) }))
+          : []
       );
-      setFile(null);
+      setFile(pendingFiles.length === 1 ? pendingFiles[0] : null);
       clearPendingFiles?.();
     }
   }, [isOpen, pendingFiles, clearPendingFiles]);
+
+  const applyMultiFiles = (rawFiles: File[]) => {
+    const imageFiles = rawFiles.filter((f) => f.type.startsWith("image/"));
+    if (imageFiles.length === 0) return;
+    if (imageFiles.length === 1) {
+      setFile(imageFiles[0]);
+      setFiles([]);
+      setMode("file");
+    } else {
+      setFiles(imageFiles.map((f) => ({ file: f, title: fileNameToTitle(f.name) })));
+      setFile(null);
+      setMode("multi");
+    }
+  };
 
   const reset = () => {
     setTitle("");
@@ -65,9 +83,11 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
     setFiles([]);
     setError("");
     setOpenFilePicker(false);
+    setIsDragOver(false);
     setSelectedBoardIds(new Set());
     setNewBoardName("");
     setBoardSelectOpen(false);
+    setMode("file");
   };
 
   const getBoardIdsForAdd = async (): Promise<string[]> => {
@@ -229,11 +249,12 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* 업로드 방식 선택 */}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => {
                 setMode("file");
+                setFiles([]);
                 setOpenFilePicker(true);
               }}
               className={`rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
@@ -246,7 +267,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
             </button>
             <button
               type="button"
-              onClick={() => setMode("url")}
+              onClick={() => { setMode("url"); setFiles([]); setFile(null); }}
               className={`rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
                 mode === "url"
                   ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
@@ -255,72 +276,85 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
             >
               이미지 링크
             </button>
+            <button
+              type="button"
+              onClick={() => { setMode("multi"); setFile(null); setFiles([]); }}
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                mode === "multi"
+                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                  : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              }`}
+            >
+              여러 파일 올리기
+            </button>
           </div>
 
-          {mode === "file" ? (
-            isMultiFile ? (
-              <div className="space-y-2">
+          {/* 파일 목록 (단일/다중 공통) */}
+          {isMultiFile ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-100">
                   이미지 ({files.length}개)<sup className="text-[0.65em] text-red-500">필수</sup>
                 </label>
-                <div className="max-h-40 overflow-y-auto space-y-2 rounded-lg border border-zinc-200 dark:border-zinc-700 p-2">
-                  {files.map((item, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={item.title}
-                        onChange={(e) => updateFileTitle(i, e.target.value)}
-                        placeholder="제목"
-                        className="flex-1 rounded border border-zinc-200 bg-white px-2 py-1 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-                      />
-                      <span className="shrink-0 truncate max-w-[120px] text-xs text-zinc-500 dark:text-zinc-200">
-                        {item.file.name}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => removeFile(i)}
-                        className="shrink-0 rounded p-1 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
-                        aria-label="제거"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div>
-                <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-100">
-                  이미지<sup className="text-[0.65em] text-red-500">필수</sup>
-                </label>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp,image/avif"
-                  multiple
-                  onChange={(e) => {
-                    const selected = Array.from(e.target.files ?? []);
-                    if (selected.length > 1) {
-                      setFiles(selected.map((f) => ({ file: f, title: fileNameToTitle(f.name) })));
-                      setFile(null);
-                    } else {
-                      setFile(selected[0] ?? null);
-                      setFiles([]);
-                    }
-                  }}
-                  className="hidden"
-                />
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full rounded-lg border border-zinc-200 border-dashed bg-zinc-50 px-3 py-4 text-sm text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                  onClick={() => multiFileInputRef.current?.click()}
+                  className="text-xs text-zinc-500 underline hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
                 >
-                  {file ? file.name : "파일 선택"}
+                  파일 추가
                 </button>
-                {file && <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-200">{file.name}</p>}
               </div>
-            )
-          ) : (
+              <div className="max-h-40 overflow-y-auto space-y-2 rounded-lg border border-zinc-200 dark:border-zinc-700 p-2">
+                {files.map((item, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={item.title}
+                      onChange={(e) => updateFileTitle(i, e.target.value)}
+                      placeholder="제목"
+                      className="flex-1 rounded border border-zinc-200 bg-white px-2 py-1 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                    <span className="shrink-0 truncate max-w-[120px] text-xs text-zinc-500 dark:text-zinc-200">
+                      {item.file.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(i)}
+                      className="shrink-0 rounded p-1 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
+                      aria-label="제거"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : mode === "file" ? (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-100">
+                이미지<sup className="text-[0.65em] text-red-500">필수</sup>
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp,image/avif"
+                onChange={(e) => {
+                  const selected = Array.from(e.target.files ?? []);
+                  setFile(selected[0] ?? null);
+                  setFiles([]);
+                }}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-3 py-4 text-sm text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+              >
+                {file ? file.name : "파일 선택"}
+              </button>
+              {file && <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-200">{file.name}</p>}
+            </div>
+          ) : mode === "url" ? (
             <div>
               <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-100">
                 이미지 URL<sup className="text-[0.65em] text-red-500">필수</sup>
@@ -333,9 +367,48 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
                 className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
               />
             </div>
+          ) : (
+            /* mode === "multi": 드래그&드롭 존 */
+            <div>
+              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-100">
+                이미지<sup className="text-[0.65em] text-red-500">필수</sup>
+              </label>
+              <input
+                ref={multiFileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp,image/avif"
+                multiple
+                onChange={(e) => applyMultiFiles(Array.from(e.target.files ?? []))}
+                className="hidden"
+              />
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => multiFileInputRef.current?.click()}
+                onKeyDown={(e) => e.key === "Enter" && multiFileInputRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+                onDragLeave={() => setIsDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragOver(false);
+                  applyMultiFiles(Array.from(e.dataTransfer.files));
+                }}
+                className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-8 text-sm transition-colors ${
+                  isDragOver
+                    ? "border-zinc-500 bg-zinc-100 dark:border-zinc-400 dark:bg-zinc-800"
+                    : "border-zinc-300 bg-zinc-50 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800/50 dark:hover:bg-zinc-800"
+                }`}
+              >
+                <UploadIcon className="h-8 w-8 text-zinc-400 dark:text-zinc-500" />
+                <p className="font-medium text-zinc-600 dark:text-zinc-300">
+                  {isDragOver ? "여기에 놓으세요" : "파일을 드래그하거나 클릭해서 선택"}
+                </p>
+                <p className="text-xs text-zinc-400 dark:text-zinc-500">여러 파일을 한번에 선택할 수 있습니다</p>
+              </div>
+            </div>
           )}
 
-          {!isMultiFile && (
+          {!isMultiFile && mode !== "multi" && (
             <div>
               <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-100">
                 제목<sup className="text-[0.65em] text-red-500">필수</sup>
@@ -447,6 +520,14 @@ function CloseIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}
+
+function UploadIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
     </svg>
   );
 }
