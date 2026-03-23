@@ -365,17 +365,16 @@ export function ImageArchiveGrid({ initialImages, initialHasMore }: ImageArchive
         onUpdate={() => fetchImages(1, false)}
       />
 
-      {boardModalOpen && (
-        <BoardAddBulkModal
-          imageIds={Array.from(selectedIds)}
-          onClose={() => setBoardModalOpen(false)}
-          onDone={() => {
-            setBoardModalOpen(false);
-            setSelectMode(false);
-            setSelectedIds(new Set());
-          }}
-        />
-      )}
+      <BoardAddBulkModal
+        isOpen={boardModalOpen}
+        imageIds={Array.from(selectedIds)}
+        onClose={() => setBoardModalOpen(false)}
+        onSuccess={() => {
+          setBoardModalOpen(false);
+          setSelectMode(false);
+          setSelectedIds(new Set());
+        }}
+      />
     </div>
   );
 }
