@@ -8,6 +8,7 @@ import { UploadProvider } from "@/contexts/UploadContext";
 import { MessagingProvider } from "@/contexts/MessagingContext";
 import { Navbar } from "@/components/Navbar";
 import { MessagingWidget } from "@/components/MessagingWidget";
+import { AnnouncementModal } from "@/components/AnnouncementModal";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -52,6 +53,7 @@ export default function RootLayout({
                       <Navbar />
                       <main className="flex-1 pb-16 md:pb-0">{children}</main>
                       <MessagingWidget />
+                      <AnnouncementModal />
                     </div>
                   </MessagingProvider>
                 </UploadProvider>

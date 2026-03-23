@@ -222,13 +222,13 @@ export function ImageDetailModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 animate-modal-backdrop"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 animate-modal-backdrop md:items-center md:p-6"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
     >
       <div
-        className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl animate-modal-content dark:border-zinc-800 dark:bg-zinc-900"
+        className="flex h-[95dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-zinc-200 bg-white shadow-2xl animate-modal-content dark:border-zinc-800 dark:bg-zinc-900 md:h-[88vh] md:w-[90vw] md:max-w-[1400px] md:rounded-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {loading ? (
@@ -239,47 +239,34 @@ export function ImageDetailModal({
           <div className="py-24 text-center text-zinc-500 dark:text-zinc-200">이미지를 불러올 수 없습니다.</div>
         ) : (
           <>
-            <div className="flex flex-1 flex-col overflow-y-auto md:overflow-hidden">
-              <div className="flex flex-1 min-h-0 flex-col overflow-hidden md:flex-row">
-                <div
-                  className={`flex min-w-0 shrink-0 items-center justify-center bg-zinc-100 p-4 dark:bg-zinc-950 md:min-h-0 md:flex-1 ${
-                    editMode ? "min-h-[12vh] md:min-h-0" : "min-h-[40vh] flex-1 md:min-h-0"
-                  }`}
-                >
-                  {detail.link ? (
-                    <a
-                      href={detail.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block"
-                    >
-                      <Image
-                        src={detail.image_url}
-                        alt={detail.title}
-                        width={0}
-                        height={0}
-                        sizes="(max-width: 768px) 100vw, 50vw"
-                        style={{ width: "auto", height: "auto" }}
-                        className={`max-w-full object-contain transition-opacity hover:opacity-90 ${
-                          editMode ? "max-h-[15vh] md:max-h-[70vh]" : "max-h-[50vh] md:max-h-[70vh]"
-                        }`}
-                      />
-                    </a>
-                  ) : (
-                    <Image
-                      src={detail.image_url}
-                      alt={detail.title}
-                      width={0}
-                      height={0}
-                      sizes="(max-width: 768px) 100vw, 50vw"
-                      style={{ width: "auto", height: "auto" }}
-                      className={`max-w-full object-contain ${
-                        editMode ? "max-h-[15vh] md:max-h-[70vh]" : "max-h-[50vh] md:max-h-[70vh]"
-                      }`}
-                    />
-                  )}
-                </div>
-                <div className="flex w-full flex-col overflow-y-auto border-t border-zinc-200 dark:border-zinc-800 md:w-96 md:min-w-[24rem] md:border-t-0 md:border-l">
+            <div className="flex flex-1 min-h-0 flex-col overflow-hidden md:flex-row">
+              {/* 이미지 영역 — fill+object-contain으로 컨테이너를 꽉 채움 */}
+              <div
+                className={`relative w-full overflow-hidden bg-zinc-100 dark:bg-zinc-950 md:flex-1 md:self-stretch ${
+                  editMode ? "h-[22vh]" : "h-[58vh]"
+                }`}
+              >
+                <Image
+                  src={detail.image_url}
+                  alt={detail.title}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 65vw"
+                  className="object-contain p-3 md:p-8"
+                  priority
+                />
+                {/* 링크가 있을 경우 투명 오버레이 앵커로 클릭 처리 */}
+                {detail.link && (
+                  <a
+                    href={detail.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute inset-0 transition-opacity hover:bg-black/5"
+                    aria-label="이미지 링크 열기"
+                  />
+                )}
+              </div>
+              {/* 정보 패널 — 모바일: 하단 스크롤 / 데스크탑: 우측 고정 너비 */}
+              <div className="flex min-h-0 w-full flex-col overflow-y-auto border-t border-zinc-200 dark:border-zinc-800 md:w-[26rem] md:min-w-[26rem] md:border-t-0 md:border-l">
                   <div className="flex items-start justify-between p-4">
                     <div>
                       <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
@@ -468,7 +455,6 @@ export function ImageDetailModal({
                   </div>
                 </div>
               </div>
-            </div>
           </>
         )}
       </div>
